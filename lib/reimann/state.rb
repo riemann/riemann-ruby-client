@@ -8,6 +8,8 @@ module Reimann
     optional :host, :string, 4
     optional :description, :string, 5
     optional :once, :bool, 6
+    repeated :tags, :string, 7
+    optional :ttl, :float, 8
     optional :metric_f, :float, 15
 
     def initialize(*a)

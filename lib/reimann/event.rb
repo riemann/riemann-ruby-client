@@ -7,6 +7,8 @@ module Reimann
     optional :service, :string, 3
     optional :host, :string, 4
     optional :description, :string, 5
+    repeated :tags, :string, 7
+    optional :ttl, :float, 8
     optional :metric_f, :float, 15
 
     def initialize(hash)
