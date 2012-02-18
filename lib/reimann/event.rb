@@ -11,11 +11,15 @@ module Reimann
     optional :ttl, :float, 8
     optional :metric_f, :float, 15
 
-    def initialize(hash)
-      if hash[:metric]
-        super hash.merge(metric_f: hash[:metric])
+    def initialize(hash = nil)
+      if hash
+        if hash[:metric]
+          super hash.merge(metric_f: hash[:metric])
+        else
+          super hash
+        end
       else
-        super hash
+        super()
       end
 
       @time ||= Time.now.to_i
