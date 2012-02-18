@@ -46,7 +46,9 @@ class Reimann::Client
 
   # Returns an array of states matching query.
   def [](query)
-    query(query).states || []
+    response = query(query)
+    (response.events || []) |
+      (response.states || [])
   end
 
   def connect
