@@ -38,6 +38,22 @@ c['host =~ "%.dc1" and (state = "critical" or state = "warning")']
 
 ```
 
+Transports
+==========
+
+Reimann::Client sends small events over UDP by default, and uses TCP for
+queries and large events. UDP sends are essentially "shouting into the void".
+They will not block your application and are roughly an order of magnitude
+faster than TCP, but you will not know if the server is down or encountered an
+error. You can specify what transport to use by selecting a subclient:
+
+``` ruby
+c.udp << { :state "ok" } # => nil
+c.tcp << { :state "ok" } # => #<Message ...>
+c.tcp["true"]            # => [#<Event ... >, ...]
+c.udp["true"]            # => raise Reimann::Client::Unsupported
+```
+
 Client state management
 =======================
 

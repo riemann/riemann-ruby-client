@@ -4,6 +4,8 @@ class Reimann::Client
   class Error < RuntimeError; end
   class InvalidResponse < Error; end
   class ServerError < Error; end
+  class Unsupported < Error; end
+  class TooBig < Unsupported; end
   
   require 'thread'
   require 'socket'
@@ -12,14 +14,16 @@ class Reimann::Client
   HOST = '127.0.0.1'
   PORT = 5555
 
-  TYPE_STATE = 1
+  require 'reimann/client/tcp'
+  require 'reimann/client/udp'
 
-  attr_accessor :host, :port, :socket
+  attr_accessor :host, :port, :tcp, :udp
 
   def initialize(opts = {})
     @host = opts[:host] || HOST
     @port = opts[:port] || PORT
-    @locket = Mutex.new
+    @udp = UDP.new opts
+    @tcp = TCP.new opts
   end
 
   # Send a state
@@ -27,6 +31,8 @@ class Reimann::Client
     # Create state
     case event_opts
     when Reimann::State
+      event = event_opts
+    when Reimann::Event
       event = event_opts
     else
       unless event_opts.include? :host
@@ -38,10 +44,7 @@ class Reimann::Client
     message = Reimann::Message.new :events => [event]
 
     # Transmit
-    with_connection do |s|
-      s << message.encode_with_length
-      read_message s
-    end
+    send_maybe_recv message
   end
 
   # Returns an array of states matching query.
@@ -51,76 +54,36 @@ class Reimann::Client
       (response.states || [])
   end
 
-  def connect
-    @socket = TCPSocket.new(@host, @port)
+  # Close both UDP and TCP sockets.
+  def close
+    @udp.close
+    @tcp.close
   end
 
-  def close
-    @locket.synchronize do
-      @socket.close
-    end
+  # Connect both UDP and TCP sockets.
+  def connect
+    udp.connect
+    tcp.connect
   end
 
   def connected?
-    not @socket.closed?
+    tcp.connected? and udp.connected?
   end
 
   # Ask for states
-  def query(string = nil)
-    message = Reimann::Message.new query: Reimann::Query.new(string: string)
-    with_connection do |s|
-      s << message.encode_with_length
-      read_message s
-    end
+  def query(string = "true")
+    send_recv Reimann::Message.new(query: Reimann::Query.new(string: string))
   end
 
-  # Read a message from a stream
-  def read_message(s)
-    if buffer = s.read(4) and buffer.size == 4
-      length = buffer.unpack('N').first
-      begin
-        str = s.read length
-        message = Reimann::Message.decode str
-      rescue => e
-        puts "Message was #{str.inspect}"
-        raise
-      end
-      
-      unless message.ok
-        puts "Failed"
-        raise ServerError, message.error
-      end
-      
-      message
-    else
-      raise InvalidResponse, "unexpected EOF"
-    end
+  def send_recv(*a)
+    @tcp.send_recv *a
   end
 
-  # Yields a connection in the block.
-  def with_connection
-    tries = 0
-    
-    @locket.synchronize do
-      begin
-        tries += 1
-          yield (@socket || connect)
-      rescue IOError => e
-        raise if tries > 3
-        connect and retry
-      rescue Errno::EPIPE => e
-        raise if tries > 3
-        connect and retry
-      rescue Errno::ECONNREFUSED => e
-        raise if tries > 3
-        connect and retry
-      rescue Errno::ECONNRESET => e
-        raise if tries > 3
-        connect and retry
-      rescue InvalidResponse => e
-        raise if tries > 3
-        connect and retry
-      end
+  def send_maybe_recv(*a)
+    begin
+      @udp.send_maybe_recv *a
+    rescue TooBig
+      @tcp.send_maybe_recv *a
     end
   end
 end
