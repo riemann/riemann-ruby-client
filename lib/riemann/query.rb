@@ -1,4 +1,4 @@
-module Reimann
+module Riemann
   class Query
     include Beefcake::Message
   

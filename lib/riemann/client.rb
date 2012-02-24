@@ -1,6 +1,6 @@
-require 'reimann'
+require 'riemann'
 
-class Reimann::Client
+class Riemann::Client
   class Error < RuntimeError; end
   class InvalidResponse < Error; end
   class ServerError < Error; end
@@ -14,8 +14,8 @@ class Reimann::Client
   HOST = '127.0.0.1'
   PORT = 5555
 
-  require 'reimann/client/tcp'
-  require 'reimann/client/udp'
+  require 'riemann/client/tcp'
+  require 'riemann/client/udp'
 
   attr_accessor :host, :port, :tcp, :udp
 
@@ -30,18 +30,18 @@ class Reimann::Client
   def <<(event_opts)
     # Create state
     case event_opts
-    when Reimann::State
+    when Riemann::State
       event = event_opts
-    when Reimann::Event
+    when Riemann::Event
       event = event_opts
     else
       unless event_opts.include? :host
         event_opts[:host] = Socket.gethostname
       end
-      event = Reimann::Event.new(event_opts)
+      event = Riemann::Event.new(event_opts)
     end
 
-    message = Reimann::Message.new :events => [event]
+    message = Riemann::Message.new :events => [event]
 
     # Transmit
     send_maybe_recv message
@@ -72,7 +72,7 @@ class Reimann::Client
 
   # Ask for states
   def query(string = "true")
-    send_recv Reimann::Message.new(query: Reimann::Query.new(string: string))
+    send_recv Riemann::Message.new(query: Riemann::Query.new(string: string))
   end
 
   def send_recv(*a)

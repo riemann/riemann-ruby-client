@@ -3,7 +3,7 @@ $:.unshift(File.join(File.dirname(__FILE__), 'lib'))
 require 'rubygems'
 require 'rubygems/package_task'
 require 'rdoc/task'
-require 'reimann/version'
+require 'riemann/version'
 require 'find'
  
 # Don't include resource forks in tarballs on Mac OS X.
@@ -12,15 +12,15 @@ ENV['COPYFILE_DISABLE'] = 'true'
  
 # Gemspec
 gemspec = Gem::Specification.new do |s|
-  s.rubyforge_project = 'reimann-client'
+  s.rubyforge_project = 'riemann-client'
  
-  s.name = 'reimann-client'
-  s.version = Reimann::VERSION
+  s.name = 'riemann-client'
+  s.version = Riemann::VERSION
   s.author = 'Kyle Kingsbury'
   s.email = 'aphyr@aphyr.com'
-  s.homepage = 'https://github.com/aphyr/reimann-ruby-client'
+  s.homepage = 'https://github.com/aphyr/riemann-ruby-client'
   s.platform = Gem::Platform::RUBY
-  s.summary = 'Client for the distributed event system Reimann.'
+  s.summary = 'Client for the distributed event system Riemann.'
 
   s.add_dependency 'beefcake', '>= 0.3.5' 
   s.add_dependency 'trollop', '>= 1.16.2'
@@ -38,8 +38,8 @@ Gem::PackageTask.new gemspec do |p|
 end
  
 RDoc::Task.new do |rd|
-  rd.main = 'Reimann'
-  rd.title = 'Reimann'
+  rd.main = 'Riemann'
+  rd.title = 'Riemann'
   rd.rdoc_dir = 'doc'
  
   rd.rdoc_files.include('lib/**/*.rb')

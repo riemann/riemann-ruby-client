@@ -1,4 +1,4 @@
-class Reimann::MetricThread
+class Riemann::MetricThread
   # A metric thread is simple: it wraps some metric object which responds to <<,
   # and every interval seconds, calls #flush which replaces the object and calls
   # a user specified function.
@@ -8,7 +8,7 @@ class Reimann::MetricThread
   attr_accessor :interval
   attr_accessor :metric
 
-  # client = Reimann::Client.new
+  # client = Riemann::Client.new
   # m = MetricThread.new Mtrc::Rate do |rate|
   #   client << rate
   # end

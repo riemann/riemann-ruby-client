@@ -1,4 +1,4 @@
-module Reimann
+module Riemann
   class AutoState
     # Binds together a state hash and a Client. Any change made here
     # sends the state to the client. Useful when updates to a state are made

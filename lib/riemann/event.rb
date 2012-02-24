@@ -1,4 +1,4 @@
-module Reimann
+module Riemann
   class Event
     include Beefcake::Message
     

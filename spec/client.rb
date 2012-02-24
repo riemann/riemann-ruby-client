@@ -1,15 +1,15 @@
 #!/usr/bin/env ruby
 
-require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'reimann'))
-require 'reimann/client'
+require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'riemann'))
+require 'riemann/client'
 require 'bacon'
 require 'set'
 
 Bacon.summary_on_exit 
 
-include Reimann
+include Riemann
 
-describe Reimann::Client do
+describe Riemann::Client do
   before do
     @client = Client.new
 #    clear

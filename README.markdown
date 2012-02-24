@@ -1,16 +1,16 @@
 Installing
 ==========
 
-    gem install reimann-client
+    gem install riemann-client
 
 Use
 ===
 
 ``` ruby
-require 'reimann/client'
+require 'riemann/client'
 
 # Create a client. Host and port are optional.
-c = Reimann::Client.new host: 'localhost', port: 5555
+c = Riemann::Client.new host: 'localhost', port: 5555
 
 # Send a simple event
 c << {service: 'testing', metric: 2.5}
@@ -41,7 +41,7 @@ c['host =~ "%.dc1" and (state = "critical" or state = "warning")']
 Transports
 ==========
 
-Reimann::Client sends small events over UDP by default, and uses TCP for
+Riemann::Client sends small events over UDP by default, and uses TCP for
 queries and large events. UDP sends are essentially "shouting into the void".
 They will not block your application and are roughly an order of magnitude
 faster than TCP, but you will not know if the server is down or encountered an
@@ -51,16 +51,16 @@ error. You can specify what transport to use by selecting a subclient:
 c.udp << { :state "ok" } # => nil
 c.tcp << { :state "ok" } # => #<Message ...>
 c.tcp["true"]            # => [#<Event ... >, ...]
-c.udp["true"]            # => raise Reimann::Client::Unsupported
+c.udp["true"]            # => raise Riemann::Client::Unsupported
 ```
 
 Client state management
 =======================
 
-Reimann::Client provides some classes to make managing state updates easier.
+Riemann::Client provides some classes to make managing state updates easier.
 
-Reimann::MetricThread starts a thread to poll a metric periodically, which can
+Riemann::MetricThread starts a thread to poll a metric periodically, which can
 be used to flush an accumulated value to ustate at regular intervals.
 
-Reimann::AutoState bundles a state and a client together. Any changes to the
+Riemann::AutoState bundles a state and a client together. Any changes to the
 AutoState automatically send the new state to the client.

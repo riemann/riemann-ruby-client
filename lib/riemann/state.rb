@@ -1,4 +1,4 @@
-module Reimann
+module Riemann
   class State
     include Beefcake::Message
     

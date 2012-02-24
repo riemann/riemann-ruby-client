@@ -1,19 +1,16 @@
-module Reimann
+module Riemann
   class Client
-    class UDP < Client
-      MAX_SIZE = 16384
-
-      attr_accessor :host, :port, :socket, :max_size
+    class TCP < Client
+      attr_accessor :host, :port, :socket
 
       def initialize(opts = {})
         @host = opts[:host] || HOST
         @port = opts[:port] || PORT
-        @max_size = opts[:max_size] || MAX_SIZE
         @locket = Mutex.new
       end
 
       def connect
-        @socket = UDPSocket.new
+        @socket = TCPSocket.new(@host, @port)
       end
 
       def close
@@ -28,24 +25,35 @@ module Reimann
 
       # Read a message from a stream
       def read_message(s)
-        raise Unsupported
-      end
-
-      def send_recv(*a)
-        raise Unsupported
-      end
-
-      def send_maybe_recv(message)
-        with_connection do |s|
-          x = message.encode ''
-          unless x.length < @max_size
-            raise TooBig
+        if buffer = s.read(4) and buffer.size == 4
+          length = buffer.unpack('N').first
+          begin
+            str = s.read length
+            message = Riemann::Message.decode str
+          rescue => e
+            puts "Message was #{str.inspect}"
+            raise
           end
-
-          s.send(x, 0, @host, @port)
-          nil
+          
+          unless message.ok
+            puts "Failed"
+            raise ServerError, message.error
+          end
+          
+          message
+        else
+          raise InvalidResponse, "unexpected EOF"
         end
       end
+
+      def send_recv(message)
+        with_connection do |s|
+          s << message.encode_with_length
+          read_message s
+        end
+      end
+
+      alias send_maybe_recv send_recv
 
       # Yields a connection in the block.
       def with_connection
