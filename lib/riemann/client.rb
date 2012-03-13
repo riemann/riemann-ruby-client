@@ -6,7 +6,7 @@ class Riemann::Client
   class ServerError < Error; end
   class Unsupported < Error; end
   class TooBig < Unsupported; end
-  
+
   require 'thread'
   require 'socket'
   require 'time'
@@ -72,7 +72,7 @@ class Riemann::Client
 
   # Ask for states
   def query(string = "true")
-    send_recv Riemann::Message.new(query: Riemann::Query.new(string: string))
+    send_recv Riemann::Message.new(:query => Riemann::Query.new(:string => string))
   end
 
   def send_recv(*a)
