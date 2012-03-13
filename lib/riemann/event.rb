@@ -1,8 +1,8 @@
 module Riemann
   class Event
     include Beefcake::Message
-    
-    optional :time, :int64, 1 
+
+    optional :time, :int64, 1
     optional :state, :string,  2
     optional :service, :string, 3
     optional :host, :string, 4
@@ -21,7 +21,7 @@ module Riemann
              else
                Event.new init
              end
-      
+
       # Metric
       init.metric_f ||= states.inject(0.0) { |a, state|
           a + (state.metric || 0)
@@ -35,10 +35,10 @@ module Riemann
       init.service ||= mode states.map(&:service)
 
       # Time
-      init.time = begin 
+      init.time = begin
         times = states.map(&:time).compact
         (times.inject(:+) / times.size).to_i
-      rescue 
+      rescue
       end
       init.time ||= Time.now.to_i
 
@@ -55,7 +55,7 @@ module Riemann
              else
                Event.new init
              end
-      
+
       # Metric
       init.metric_f ||= states.inject(0.0) { |a, state|
           a + (state.metric || 0)
@@ -69,16 +69,16 @@ module Riemann
       init.service ||= mode states.map(&:service)
 
       # Time
-      init.time = begin 
+      init.time = begin
         times = states.map(&:time).compact
         (times.inject(:+) / times.size).to_i
-      rescue 
+      rescue
       end
       init.time ||= Time.now.to_i
 
       init
     end
-    
+
     # Finds the maximum of a set of states. Metric is the maximum. Event is the
     # highest, as defined by Dash.config.state_order. Time is the mean.
     def self.max(states, init = Event.new)
@@ -88,7 +88,7 @@ module Riemann
              else
                Event.new init
              end
-      
+
       # Metric
       init.metric_f ||= states.inject(0.0) { |a, state|
           a + (state.metric || 0)
@@ -103,16 +103,16 @@ module Riemann
       end
 
       # Time
-      init.time = begin 
+      init.time = begin
         times = states.map(&:time).compact
         (times.inject(:+) / times.size).to_i
-      rescue 
+      rescue
       end
       init.time ||= Time.now.to_i
 
       init
     end
-    
+
     def self.mode(array)
       array.inject(Hash.new(0)) do |counts, e|
         counts[e] += 1
@@ -152,7 +152,7 @@ module Riemann
     def initialize(hash = nil)
       if hash
         if hash[:metric]
-          super hash.merge(metric_f: hash[:metric])
+          super hash.merge(:metric_f => hash[:metric])
         else
           super hash
         end
