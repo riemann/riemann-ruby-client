@@ -68,7 +68,7 @@ describe Riemann::Client do
   end
 
   it '[]' do
-    @client['state = "critical"'].should == []
+#    @client['state = "critical"'].should == []
     @client << {:state => 'critical'}
     @client['state = "critical"'].first.state.should == 'critical'
   end

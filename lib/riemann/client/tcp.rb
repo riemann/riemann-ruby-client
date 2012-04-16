@@ -62,7 +62,7 @@ module Riemann
         @locket.synchronize do
           begin
             tries += 1
-              yield (@socket || connect)
+              yield(@socket || connect)
           rescue IOError => e
             raise if tries > 3
             connect and retry
