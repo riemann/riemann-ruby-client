@@ -20,8 +20,8 @@ c << {
   host: 'web3',
   service: 'api latency',
   state: 'warn',
-  metric: 63.5
-  description: "63.5 milliseconds per request"
+  metric: 63.5,
+  description: "63.5 milliseconds per request",
   time: Time.now.to_i - 10
 }
 
