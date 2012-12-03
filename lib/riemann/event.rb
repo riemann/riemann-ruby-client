@@ -9,6 +9,9 @@ module Riemann
     optional :description, :string, 5
     repeated :tags, :string, 7
     optional :ttl, :float, 8
+
+    optional :metric_sint64, :sint64, 13
+    optional :metric_d, :double, 14
     optional :metric_f, :float, 15
 
     # Average a set of states together. Chooses the mean metric, the mode
@@ -93,8 +96,8 @@ module Riemann
       init.metric_f ||= states.inject(0.0) { |a, state|
           a + (state.metric || 0)
         }
-      if init.metric_f.nan?
-        init.metric_f = 0.0
+      if init.metric.nan?
+        init.metric = 0.0
       end
 
       # Event
@@ -152,7 +155,8 @@ module Riemann
     def initialize(hash = nil)
       if hash
         if hash[:metric]
-          super hash.merge(:metric_f => hash[:metric])
+          super hash
+          self.metric = hash[:metric]
         else
           super hash
         end
@@ -164,11 +168,20 @@ module Riemann
     end
 
     def metric
-      metric_f
+      metric_d ||
+        metric_sint64 ||
+        metric_f
     end
 
     def metric=(m)
-      self.metric_f = m
+      if Integer === m and (-(2**63)...2**63) === m
+        # Long
+        self.metric_sint64 = m
+        self.metric_f = m.to_f
+      else
+        self.metric_d = m.to_f
+        self.metric_f = m.to_f
+      end
     end
   end
 end

@@ -26,35 +26,45 @@ describe Riemann::Client do
     res.should == nil
   end
 
+  def roundtrip_metric(m)
+    @client.tcp << {
+      :service => 'metric-test',
+      :metric => m
+    }
+    @client["service = \"metric-test\" and metric = #{m}"].
+      first.metric.should.equal m
+  end
+
+  should 'send longs' do
+    roundtrip_metric 0
+    roundtrip_metric -3
+    roundtrip_metric 5
+    roundtrip_metric -(2**63)
+    roundtrip_metric(2**63 - 1)
+  end
+
+  should 'send doubles' do
+    roundtrip_metric 0.0
+    roundtrip_metric 12.0
+    roundtrip_metric 1.2300000190734863
+  end
+
   should 'send a state with a time' do
     t = Time.now.to_i - 10
-    @client << {
+    @client.tcp << {
       :state => 'ok',
       :service => 'test',
       :time => t
     }
-    @client.query('service = "test"').events.first.time.should == t
-
-    @client << Event.new(
-      :state => 'ok',
-      :service => 'test',
-      :time => t
-    )
     @client.query('service = "test"').events.first.time.should == t
   end
 
   should 'send a state without time' do
-    @client << {
+    @client.tcp << {
       :state => 'ok',
-      :service => 'test'
+      :service => 'timeless test'
     }
-    @client.query('service = "test"').events.first.time.should == Time.now.to_i
-
-    @client << Event.new(
-      :state => 'ok',
-      :service => 'test'
-    )
-    @client.query('service = "test"').events.first.time.should == Time.now.to_i
+    @client.query('service = "timeless test"').events.first.time.should == Time.now.to_i
   end
 
   should "query states" do
@@ -63,7 +73,7 @@ describe Riemann::Client do
     @client << { :state => 'critical', :service => '3' }
     @client.query.events.
       map(&:service).to_set.should.superset ['1', '2', '3'].to_set
-    @client.query('state = "critical"').events.
+    @client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events.
       map(&:service).to_set.should == ['1', '3'].to_set
   end
 
