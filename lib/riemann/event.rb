@@ -9,6 +9,7 @@ module Riemann
     optional :description, :string, 5
     repeated :tags, :string, 7
     optional :ttl, :float, 8
+    repeated :attributes, Attribute, 9
 
     optional :metric_sint64, :sint64, 13
     optional :metric_d, :double, 14
