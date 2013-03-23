@@ -161,6 +161,11 @@ module Riemann
         else
           super hash
         end
+
+        # Add extra attributes to the event as Attribute instances with values converted to String
+        keys = hash.keys.map {|k| k.to_s } - self.fields.values.map {|f| f.name.to_s }
+        self['attributes'] = keys.map {|key| Attribute.new(:key => key, :value => (hash[key] || hash[key.to_sym]).to_s) }
+
       else
         super()
       end
