@@ -163,8 +163,8 @@ module Riemann
         end
 
         # Add extra attributes to the event as Attribute instances with values converted to String
-        keys = hash.keys.map {|k| k.to_s } - self.fields.values.map {|f| f.name.to_s }
-        self['attributes'] = keys.map {|key| Attribute.new(:key => key, :value => (hash[key] || hash[key.to_sym]).to_s) }
+        keys = hash.keys.map {|k| k.to_sym } - self.fields.values.map {|f| f.name.to_sym }
+        self.attributes = keys.map {|key| Attribute.new(:key => key.to_s, :value => (hash[key] || hash[key.to_sym]).to_s) }
 
       else
         super()
@@ -189,5 +189,31 @@ module Riemann
         self.metric_f = m.to_f
       end
     end
+
+    # Look up attributes
+    def [](k)
+      if(respond_to? k)
+        super
+      else
+        r = attributes.select {|a| a.key.to_sym == k.to_sym }.map {|a| a.value}
+        r.size > 1 ? r : r.first
+      end
+    end
+
+    # Set attributes
+    def []=(k, v)
+      if(respond_to?("#{k}="))
+        super
+      else
+        a = self.attributes.select {|a| a.key.to_sym == k.to_sym }.first
+        if(a)
+          a.value = v.to_s
+        else
+          self.attributes << Attribute.new(:key => k.to_s, :value => v.to_s)
+        end
+      end
+    end
+
   end
+
 end
