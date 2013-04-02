@@ -1,5 +1,6 @@
 module Riemann
   class Event
+    require 'set'
     include Beefcake::Message
 
     optional :time, :int64, 1
@@ -14,6 +15,17 @@ module Riemann
     optional :metric_sint64, :sint64, 13
     optional :metric_d, :double, 14
     optional :metric_f, :float, 15
+
+    # Fields which don't really exist in protobufs, but which are reserved
+    # and can't be used as attributes.
+    VIRTUAL_FIELDS = Set.new([:metric])
+    # Fields which are specially encoded in the Event protobuf--that is, they
+    # can't be used as attributes.
+    RESERVED_FIELDS = fields.map do |i, field|
+      field.name.to_sym
+    end.reduce(VIRTUAL_FIELDS) do |set, field|
+      set << field
+    end
 
     # Average a set of states together. Chooses the mean metric, the mode
     # state, mode service, and the mean time. If init is provided, its values
@@ -162,10 +174,14 @@ module Riemann
           super hash
         end
 
-        # Add extra attributes to the event as Attribute instances with values converted to String
-        keys = hash.keys.map {|k| k.to_sym } - self.fields.values.map {|f| f.name.to_sym }
-        self.attributes = keys.map {|key| Attribute.new(:key => key.to_s, :value => (hash[key] || hash[key.to_sym]).to_s) }
-
+        # Add extra attributes to the event as Attribute instances with values
+        # converted to String
+        self.attributes = hash.map do |key, value|
+          unless RESERVED_FIELDS.include? key.to_sym
+            Attribute.new(:key => key.to_s,
+                          :value => (hash[key] || hash[key.to_sym]).to_s)
+          end
+        end.compact
       else
         super()
       end
@@ -192,20 +208,19 @@ module Riemann
 
     # Look up attributes
     def [](k)
-      if(respond_to? k)
+      if RESERVED_FIELDS.include? k.to_sym
         super
       else
-        r = attributes.select {|a| a.key.to_sym == k.to_sym }.map {|a| a.value}
-        r.size > 1 ? r : r.first
+        r = attributes.find {|a| a.key.to_s == k.to_s }.value
       end
     end
 
     # Set attributes
     def []=(k, v)
-      if(respond_to?("#{k}="))
+      if RESERVED_FIELDS.include? k.to_sym
         super
       else
-        a = self.attributes.select {|a| a.key.to_sym == k.to_sym }.first
+        a = self.attributes.find {|a| a.key == k.to_s }
         if(a)
           a.value = v.to_s
         else
@@ -213,7 +228,5 @@ module Riemann
         end
       end
     end
-
   end
-
 end

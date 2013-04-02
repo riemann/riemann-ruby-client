@@ -49,6 +49,23 @@ describe Riemann::Client do
     roundtrip_metric 1.2300000190734863
   end
 
+  should 'send custom attributes' do
+    event = Event.new(
+      :service => 'custom',
+      :state => 'ok',
+      :cats => 'meow',
+      :env => 'prod'
+    )
+    event[:sneak] = 'attack'
+    @client.tcp << event
+    event2 = @client['service = "custom"'].first
+    event2.service.should == 'custom'
+    event2.state.should == 'ok'
+    event2[:cats].should == 'meow'
+    event2[:env].should == 'prod'
+    event2[:sneak].should == 'attack'
+  end
+
   should 'send a state with a time' do
     t = Time.now.to_i - 10
     @client.tcp << {
