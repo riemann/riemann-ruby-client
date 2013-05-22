@@ -23,7 +23,7 @@ module Riemann
       end
 
       def connected?
-        not @socket.closed?
+        !!@socket && @socket.closed?
       end
 
       # Read a message from a stream
