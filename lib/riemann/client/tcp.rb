@@ -80,6 +80,9 @@ module Riemann
           rescue InvalidResponse => e
             raise if tries > 3
             connect and retry
+          rescue Timeout::Error => e
+            raise if tries > 3
+            connect and retry
           end
         end
       end
