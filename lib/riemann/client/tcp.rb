@@ -11,7 +11,9 @@ module Riemann
       end
 
       def connect
-        @socket = TCPSocket.new(@host, @port)
+        Timeout::timeout(@timeout) do
+          @socket = TCPSocket.new(@host, @port)
+        end
       end
 
       def close
@@ -63,9 +65,7 @@ module Riemann
         @locket.synchronize do
           begin
             tries += 1
-            Timeout::timeout(5) do
               yield(@socket || connect)
-            end
           rescue IOError => e
             raise if tries > 3
             connect and retry
