@@ -3,6 +3,7 @@ module Riemann
 
   require 'rubygems'
   require 'beefcake'
+  require 'timeout'
   require 'riemann/version'
   require 'riemann/state'
   require 'riemann/attribute'
