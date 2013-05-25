@@ -6,6 +6,7 @@ module Riemann
       def initialize(opts = {})
         @host = opts[:host] || HOST
         @port = opts[:port] || PORT
+        @timeout = opts[:timeout] || TIMEOUT
         @locket = Mutex.new
       end
 
