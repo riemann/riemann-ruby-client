@@ -6,11 +6,14 @@ module Riemann
       def initialize(opts = {})
         @host = opts[:host] || HOST
         @port = opts[:port] || PORT
+        @timeout = opts[:timeout] || TIMEOUT
         @locket = Mutex.new
       end
 
       def connect
-        @socket = TCPSocket.new(@host, @port)
+        Timeout::timeout(@timeout) do
+          @socket = TCPSocket.new(@host, @port)
+        end
       end
 
       def close
@@ -76,6 +79,9 @@ module Riemann
             raise if tries > 3
             connect and retry
           rescue InvalidResponse => e
+            raise if tries > 3
+            connect and retry
+          rescue Timeout::Error => e
             raise if tries > 3
             connect and retry
           end

@@ -13,15 +13,17 @@ class Riemann::Client
 
   HOST = '127.0.0.1'
   PORT = 5555
+  TIMEOUT = 5
 
   require 'riemann/client/tcp'
   require 'riemann/client/udp'
 
-  attr_accessor :host, :port, :tcp, :udp
+  attr_accessor :host, :port, :tcp, :udp, :timeout
 
   def initialize(opts = {})
     @host = opts[:host] || HOST
     @port = opts[:port] || PORT
+    @timeout = opts[:timeout] || TIMEOUT
     @udp = UDP.new opts
     @tcp = TCP.new opts
   end
