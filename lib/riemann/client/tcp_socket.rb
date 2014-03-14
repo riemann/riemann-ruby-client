@@ -267,7 +267,13 @@ module Riemann
       #
       # Returns the bytes read if no outbuf is specified
       def read(length, outbuf = nil)
-        buf = (outbuf || '').clear
+        if outbuf
+          outbuf.replace('')
+          buf = outbuf
+        else
+          buf = ''
+        end
+
         while buf.length < length
           unless rb = readpartial(length - buf.length)
             break
