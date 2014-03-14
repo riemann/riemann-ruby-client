@@ -1,24 +1,50 @@
+require 'monitor'
+require 'riemann/client/tcp_socket'
+
 module Riemann
   class Client
     class TCP < Client
       attr_accessor :host, :port, :socket
 
-      def initialize(opts = {})
-        @host = opts[:host] || HOST
-        @port = opts[:port] || PORT
-        @timeout = opts[:timeout] || TIMEOUT
-        @locket = Mutex.new
+      # Public: Set a socket factory -- an object responding
+      # to #call(options) that returns a Socket object
+      def self.socket_factory=(factory)
+        @socket_factory = factory
       end
 
-      def connect
-        Timeout::timeout(@timeout) do
-          @socket = TCPSocket.new(@host, @port)
+      # Public: Return a socket factory
+      def self.socket_factory
+        @socket_factory || proc { |options| TcpSocket.connect(options) }
+      end
+
+      def initialize(options = {})
+        @options = options
+        @locket  = Monitor.new
+      end
+
+      def socket
+        @locket.synchronize do
+          if @pid && @pid != Process.pid
+            close
+          end
+
+          if @socket and not @socket.closed?
+            return @socket
+          end
+
+          @socket = self.class.socket_factory.call(@options)
+          @pid    = Process.pid
+
+          return @socket
         end
       end
 
       def close
         @locket.synchronize do
-          @socket.close
+          if @socket && !@socket.closed?
+            @socket.close
+          end
+          @socket = nil
         end
       end
 
@@ -51,8 +77,8 @@ module Riemann
 
       def send_recv(message)
         with_connection do |s|
-          s << message.encode_with_length
-          read_message s
+          s.write(message.encode_with_length)
+          read_message(s)
         end
       end
 
@@ -65,25 +91,10 @@ module Riemann
         @locket.synchronize do
           begin
             tries += 1
-              yield(@socket || connect)
-          rescue IOError => e
+            yield(socket)
+          rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, InvalidResponse, Timeout::Error, Riemann::Client::TcpSocket::Error
             raise if tries > 3
-            connect and retry
-          rescue Errno::EPIPE => e
-            raise if tries > 3
-            connect and retry
-          rescue Errno::ECONNREFUSED => e
-            raise if tries > 3
-            connect and retry
-          rescue Errno::ECONNRESET => e
-            raise if tries > 3
-            connect and retry
-          rescue InvalidResponse => e
-            raise if tries > 3
-            connect and retry
-          rescue Timeout::Error => e
-            raise if tries > 3
-            connect and retry
+            retry
           end
         end
       end

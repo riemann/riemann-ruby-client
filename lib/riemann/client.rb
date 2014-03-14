@@ -18,14 +18,28 @@ class Riemann::Client
   require 'riemann/client/tcp'
   require 'riemann/client/udp'
 
-  attr_accessor :host, :port, :tcp, :udp, :timeout
+  attr_reader :tcp, :udp
 
   def initialize(opts = {})
-    @host = opts[:host] || HOST
-    @port = opts[:port] || PORT
-    @timeout = opts[:timeout] || TIMEOUT
-    @udp = UDP.new opts
-    @tcp = TCP.new opts
+    @options = opts.dup
+    @options[:host] ||= HOST
+    @options[:port] ||= PORT
+    @options[:timeout] ||= TIMEOUT
+
+    @udp = UDP.new(@options)
+    @tcp = TCP.new(@options)
+  end
+
+  def host
+    @options[:host]
+  end
+
+  def port
+    @options[:port]
+  end
+
+  def timeout
+    @options[:timeout]
   end
 
   # Send a state
