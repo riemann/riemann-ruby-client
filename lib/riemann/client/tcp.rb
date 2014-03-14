@@ -92,7 +92,7 @@ module Riemann
           begin
             tries += 1
             yield(socket)
-          rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, InvalidResponse, Timeout::Error
+          rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, InvalidResponse, Timeout::Error, Riemann::Client::TcpSocket::Error
             raise if tries > 3
             retry
           end
