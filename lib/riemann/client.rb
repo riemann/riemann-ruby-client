@@ -76,12 +76,6 @@ class Riemann::Client
     @tcp.close
   end
 
-  # Connect both UDP and TCP sockets.
-  def connect
-    udp.connect
-    tcp.connect
-  end
-
   def connected?
     tcp.connected? and udp.connected?
   end
