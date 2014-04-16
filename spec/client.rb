@@ -9,30 +9,25 @@ Bacon.summary_on_exit
 
 include Riemann
 
-describe Riemann::Client do
-  before do
-    @client = Client.new
-#    clear
-  end
 
-  should 'send a state' do
-    res = @client << {
-      :state => 'ok',
-      :service => 'test',
-      :description => 'desc',
-      :metric_f => 1.0
-    }
+def roundtrip_metric(m)
+  @client_with_transport << {
+    :service => 'metric-test',
+    :metric => m
+  }
+  @client["service = \"metric-test\" and metric = #{m}"].
+    first.metric.should.equal m
+end
 
-    res.should == nil
-  end
 
-  def roundtrip_metric(m)
-    @client.tcp << {
-      :service => 'metric-test',
-      :metric => m
-    }
-    @client["service = \"metric-test\" and metric = #{m}"].
-      first.metric.should.equal m
+shared "a riemann client" do
+
+  should 'be connected after sending' do
+    @client_with_transport.connected?.should.be.false
+    @client.connected?.should.be.false
+    @client_with_transport << {:state => 'ok', :service => 'connected check' }
+    @client_with_transport.connected?.should.be.true
+    # NOTE: only single transport connected at this point, @client.connected? is still false until all transports used
   end
 
   should 'send longs' do
@@ -57,47 +52,47 @@ describe Riemann::Client do
       :env => 'prod'
     )
     event[:sneak] = 'attack'
-    @client.tcp << event
+    @client_with_transport << event
     event2 = @client['service = "custom"'].first
-    event2.service.should == 'custom'
-    event2.state.should == 'ok'
-    event2[:cats].should == 'meow'
-    event2[:env].should == 'prod'
-    event2[:sneak].should == 'attack'
+    event2.service.should.equal 'custom'
+    event2.state.should.equal 'ok'
+    event2[:cats].should.equal 'meow'
+    event2[:env].should.equal 'prod'
+    event2[:sneak].should.equal 'attack'
   end
 
   should 'send a state with a time' do
     t = Time.now.to_i - 10
-    @client.tcp << {
+    @client_with_transport << {
       :state => 'ok',
       :service => 'test',
       :time => t
     }
-    @client.query('service = "test"').events.first.time.should == t
+    @client.query('service = "test"').events.first.time.should.equal t
   end
 
   should 'send a state without time' do
-    @client.tcp << {
+    @client_with_transport << {
       :state => 'ok',
       :service => 'timeless test'
     }
-    @client.query('service = "timeless test"').events.first.time.should == Time.now.to_i
+    @client.query('service = "timeless test"').events.first.time.should.equal Time.now.to_i
   end
 
   should "query states" do
-    @client << { :state => 'critical', :service => '1' }
-    @client << { :state => 'warning', :service => '2' }
-    @client << { :state => 'critical', :service => '3' }
+    @client_with_transport << { :state => 'critical', :service => '1' }
+    @client_with_transport << { :state => 'warning', :service => '2' }
+    @client_with_transport << { :state => 'critical', :service => '3' }
     @client.query.events.
       map(&:service).to_set.should.superset ['1', '2', '3'].to_set
     @client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events.
-      map(&:service).to_set.should == ['1', '3'].to_set
+      map(&:service).to_set.should.equal ['1', '3'].to_set
   end
 
   it '[]' do
 #    @client['state = "critical"'].should == []
-    @client << {:state => 'critical'}
-    @client['state = "critical"'].first.state.should == 'critical'
+    @client_with_transport << {:state => 'critical'}
+    @client['state = "critical"'].first.state.should.equal 'critical'
   end
 
   should 'query quickly' do
@@ -109,8 +104,7 @@ describe Riemann::Client do
     t2 = Time.now
 
     rate = total / (t2 - t1)
-    puts
-    puts "#{rate} queries/sec"
+    puts "\n     #{"%.2f" % rate} queries/sec (#{"%.2f" % (1000/rate)}ms per query)"
     rate.should > 100
   end
 
@@ -123,7 +117,7 @@ describe Riemann::Client do
     (0...concurrency).map do |i|
       Thread.new do
         per_thread.times do
-          @client.tcp.<<({
+          @client_with_transport.<<({
             :state => 'ok',
             :service => 'test',
             :description => 'desc',
@@ -137,36 +131,117 @@ describe Riemann::Client do
     t2 = Time.now
 
     rate = total / (t2 - t1)
-    puts
-    puts "#{rate} inserts/sec"
-    rate.should > 100
+    puts "\n     #{"%.2f" % rate} inserts/sec (#{"%.2f" % (1000/rate)}ms per insert)"
+    rate.should > @expected_rate
+  end
+
+end
+
+
+describe "Riemann::Client (TCP transport)" do
+  before do
+    @client = Client.new
+    @client_with_transport = @client.tcp
+    @expected_rate = 100
+  end
+  behaves_like "a riemann client"
+
+  should 'send a state' do
+    res = @client_with_transport << {
+      :state => 'ok',
+      :service => 'test',
+      :description => 'desc',
+      :metric_f => 1.0
+    }
+
+    res.ok.should.be.true
+    @client['service = "test"'].first.state.should.equal 'ok'
   end
 
   should 'survive inactivity' do
-    @client.tcp.<<({
+    @client_with_transport.<<({
       :state => 'warning',
       :service => 'test',
     })
 
     sleep 5
 
-    @client.tcp.<<({
+    @client_with_transport.<<({
       :state => 'warning',
       :service => 'test',
     }).ok.should.be.true
   end
 
   should 'survive local close' do
-    @client.tcp.<<({
+    @client_with_transport.<<({
       :state => 'warning',
       :service => 'test',
     }).ok.should.be.true
 
-    @client.tcp.socket.close
+    @client.close
 
-    @client.tcp.<<({
+    @client_with_transport.<<({
       :state => 'warning',
       :service => 'test',
     }).ok.should.be.true
   end
+end
+
+describe "Riemann::Client (UDP transport)" do
+  before do
+    @client = Client.new
+    @client_with_transport = @client.udp
+    @expected_rate = 1000
+  end
+  behaves_like "a riemann client"
+
+  should 'send a state' do
+    res = @client_with_transport << {
+      :state => 'ok',
+      :service => 'test',
+      :description => 'desc',
+      :metric_f => 1.0
+    }
+
+    res.should.be.nil
+    @client['service = "test"'].first.state.should.equal 'ok'
+  end
+
+  should 'survive inactivity' do
+    @client_with_transport.<<({
+      :state => 'warning',
+      :service => 'test',
+    })
+    @client['service = "test"'].first.state.should.equal 'warning'
+
+    sleep 5
+
+    @client_with_transport.<<({
+      :state => 'ok',
+      :service => 'test',
+    })
+    @client['service = "test"'].first.state.should.equal 'ok'
+  end
+
+  should 'survive local close' do
+    @client_with_transport.<<({
+      :state => 'warning',
+      :service => 'test',
+    })
+    @client['service = "test"'].first.state.should.equal 'warning'
+
+    @client.close
+
+    @client_with_transport.<<({
+      :state => 'ok',
+      :service => 'test',
+    })
+    @client['service = "test"'].first.state.should.equal 'ok'
+  end
+
+  should "raise Riemann::Client::Unsupported exception on query" do
+    should.raise(Riemann::Client::Unsupported) { @client_with_transport['service = "test"'] }
+    should.raise(Riemann::Client::Unsupported) { @client_with_transport.query('service = "test"') }
+  end
+
 end
