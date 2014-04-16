@@ -28,9 +28,7 @@ module Riemann
             close
           end
 
-          if @socket and not @socket.closed?
-            return @socket
-          end
+          return @socket if connected?
 
           @socket = self.class.socket_factory.call(@options)
           @pid    = Process.pid
@@ -41,15 +39,15 @@ module Riemann
 
       def close
         @locket.synchronize do
-          if @socket && !@socket.closed?
-            @socket.close
-          end
+          @socket.close if connected?
           @socket = nil
         end
       end
 
       def connected?
-        !@socket && @socket.closed?
+        @locket.synchronize do
+          (@socket.nil? || @socket.closed?) ? false : true
+        end
       end
 
       # Read a message from a stream
@@ -63,12 +61,12 @@ module Riemann
             puts "Message was #{str.inspect}"
             raise
           end
-          
+
           unless message.ok
             puts "Failed"
             raise ServerError, message.error
           end
-          
+
           message
         else
           raise InvalidResponse, "unexpected EOF"
@@ -87,7 +85,7 @@ module Riemann
       # Yields a connection in the block.
       def with_connection
         tries = 0
-        
+
         @locket.synchronize do
           begin
             tries += 1
