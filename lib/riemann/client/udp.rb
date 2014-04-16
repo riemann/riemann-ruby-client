@@ -17,13 +17,16 @@ module Riemann
       end
 
       def close
-        @locket.synchronize do
-          @socket.close
-        end
+        # there is no socket.close for UDP
+        # @locket.synchronize do
+        #   @socket.close
+        # end
       end
 
       def connected?
-        !!@socket && @socket.closed?
+        @locket.synchronize do
+          @socket.nil? ? false : true
+        end
       end
 
       # Read a message from a stream
@@ -50,26 +53,18 @@ module Riemann
       # Yields a connection in the block.
       def with_connection
         tries = 0
-        
+
         @locket.synchronize do
           begin
             tries += 1
               yield(@socket || connect)
-          rescue IOError => e
-            raise if tries > 3
-            connect and retry
-          rescue Errno::EPIPE => e
-            raise if tries > 3
-            connect and retry
-          rescue Errno::ECONNREFUSED => e
-            raise if tries > 3
-            connect and retry
-          rescue Errno::ECONNRESET => e
-            raise if tries > 3
-            connect and retry
-          rescue InvalidResponse => e
-            raise if tries > 3
-            connect and retry
+          rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, Errno::ECONNRESET, InvalidResponse
+            if tries > 3
+              @socket = nil
+              raise
+            else
+              connect and retry
+            end
           end
         end
       end
