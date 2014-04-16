@@ -37,12 +37,12 @@ module Riemann
 
       def send_maybe_recv(message)
         with_connection do |s|
-          x = message.encode ''
-          unless x.length < @max_size
+          encoded_string = message.encode.to_s
+          unless encoded_string.length < @max_size
             raise TooBig
           end
 
-          s.send(x, 0, @host, @port)
+          s.send(encoded_string, 0, @host, @port)
           nil
         end
       end
