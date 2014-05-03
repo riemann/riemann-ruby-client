@@ -9,6 +9,7 @@ Bacon.summary_on_exit
 
 include Riemann
 
+INACTIVITY_TIME = 5
 
 def roundtrip_metric(m)
   @client_with_transport << {
@@ -161,28 +162,28 @@ describe "Riemann::Client (TCP transport)" do
   should 'survive inactivity' do
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'test',
+      :service => 'survive inactivity',
     })
 
-    sleep 5
+    sleep INACTIVITY_TIME
 
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'test',
+      :service => 'survive inactivity',
     }).ok.should.be.true
   end
 
   should 'survive local close' do
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'test',
+      :service => 'survive local close',
     }).ok.should.be.true
 
     @client.close
 
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'test',
+      :service => 'survive local close',
     }).ok.should.be.true
   end
 end
@@ -210,33 +211,33 @@ describe "Riemann::Client (UDP transport)" do
   should 'survive inactivity' do
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'test',
+      :service => 'survive UDP inactivity',
     })
-    @client['service = "test"'].first.state.should.equal 'warning'
+    @client['service = "survive UDP inactivity"'].first.state.should.equal 'warning'
 
-    sleep 5
+    sleep INACTIVITY_TIME
 
     @client_with_transport.<<({
       :state => 'ok',
-      :service => 'test',
+      :service => 'survive UDP inactivity',
     })
-    @client['service = "test"'].first.state.should.equal 'ok'
+    @client['service = "survive UDP inactivity"'].first.state.should.equal 'ok'
   end
 
   should 'survive local close' do
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'test',
+      :service => 'survive UDP local close',
     })
-    @client['service = "test"'].first.state.should.equal 'warning'
+    @client['service = "survive UDP local close"'].first.state.should.equal 'warning'
 
     @client.close
 
     @client_with_transport.<<({
       :state => 'ok',
-      :service => 'test',
+      :service => 'survive UDP local close',
     })
-    @client['service = "test"'].first.state.should.equal 'ok'
+    @client['service = "survive UDP local close"'].first.state.should.equal 'ok'
   end
 
   should "raise Riemann::Client::Unsupported exception on query" do

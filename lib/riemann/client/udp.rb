@@ -9,7 +9,6 @@ module Riemann
         @host = opts[:host] || HOST
         @port = opts[:port] || PORT
         @max_size = opts[:max_size] || MAX_SIZE
-        @locket = Mutex.new
       end
 
       def connect
@@ -17,16 +16,12 @@ module Riemann
       end
 
       def close
-        # there is no socket.close for UDP
-        # @locket.synchronize do
-        #   @socket.close
-        # end
+        @socket.close if connected?
+        @socket = nil
       end
 
       def connected?
-        @locket.synchronize do
-          @socket.nil? ? false : true
-        end
+        @socket.nil? ? false : true
       end
 
       # Read a message from a stream
@@ -53,19 +48,13 @@ module Riemann
       # Yields a connection in the block.
       def with_connection
         tries = 0
-
-        @locket.synchronize do
-          begin
-            tries += 1
-              yield(@socket || connect)
-          rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, Errno::ECONNRESET, InvalidResponse
-            if tries > 3
-              @socket = nil
-              raise
-            else
-              connect and retry
-            end
-          end
+        begin
+          tries += 1
+          yield(@socket || connect)
+        rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, Errno::ECONNRESET, InvalidResponse, SocketError
+          close # force a reconnect
+          raise if tries > 3
+          retry
         end
       end
     end

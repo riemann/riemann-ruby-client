@@ -46,7 +46,7 @@ module Riemann
 
       def connected?
         @locket.synchronize do
-          (@socket.nil? || @socket.closed?) ? false : true
+          !@socket.nil? && !@socket.closed?
         end
       end
 
