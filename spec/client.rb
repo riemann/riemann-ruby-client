@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+# How to run the bacon tests:
+#   1. Start Riemann on default location 127.0.0.1:5555
+#   2. $ bundle exec bacon spec/client.rb
+
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'riemann'))
 require 'riemann/client'
 require 'bacon'
@@ -20,22 +24,29 @@ def roundtrip_metric(m)
     first.metric.should.equal m
 end
 
+def truthy
+  lambda { |obj| !(obj.nil? || obj == false) }
+end
+
+def falsey
+  lambda { |obj| obj.nil? || obj == false }
+end
 
 shared "a riemann client" do
 
   should 'be connected after sending' do
-    @client_with_transport.connected?.should.be.false
-    @client.connected?.should.be.false
+    @client_with_transport.connected?.should.be falsey
+    @client.connected?.should.be falsey
     @client_with_transport << {:state => 'ok', :service => 'connected check' }
-    @client_with_transport.connected?.should.be.true
+    @client_with_transport.connected?.should.be truthy
     # NOTE: only single transport connected at this point, @client.connected? is still false until all transports used
   end
 
   should 'send longs' do
-    roundtrip_metric 0
-    roundtrip_metric -3
-    roundtrip_metric 5
-    roundtrip_metric -(2**63)
+    roundtrip_metric(0)
+    roundtrip_metric(-3)
+    roundtrip_metric(5)
+    roundtrip_metric(-(2**63))
     roundtrip_metric(2**63 - 1)
   end
 
@@ -155,36 +166,40 @@ describe "Riemann::Client (TCP transport)" do
       :metric_f => 1.0
     }
 
-    res.ok.should.be.true
+    res.ok.should.be truthy
     @client['service = "test"'].first.state.should.equal 'ok'
   end
 
   should 'survive inactivity' do
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'survive inactivity',
+      :service => 'survive TCP inactivity',
     })
+    @client['service = "survive TCP inactivity"'].first.state.should.equal 'warning'
 
     sleep INACTIVITY_TIME
 
     @client_with_transport.<<({
-      :state => 'warning',
-      :service => 'survive inactivity',
-    }).ok.should.be.true
+      :state => 'ok',
+      :service => 'survive TCP inactivity',
+    }).ok.should.be truthy
+    @client['service = "survive TCP inactivity"'].first.state.should.equal 'ok'
   end
 
   should 'survive local close' do
     @client_with_transport.<<({
       :state => 'warning',
-      :service => 'survive local close',
-    }).ok.should.be.true
+      :service => 'survive TCP local close',
+    }).ok.should.be truthy
+    @client['service = "survive TCP local close"'].first.state.should.equal 'warning'
 
     @client.close
 
     @client_with_transport.<<({
-      :state => 'warning',
-      :service => 'survive local close',
-    }).ok.should.be.true
+      :state => 'ok',
+      :service => 'survive TCP local close',
+    }).ok.should.be truthy
+    @client['service = "survive TCP local close"'].first.state.should.equal 'ok'
   end
 end
 

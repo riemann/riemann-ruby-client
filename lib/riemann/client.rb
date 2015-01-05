@@ -72,7 +72,7 @@ class Riemann::Client
 
   def connect
     # NOTE: connections are made automatically on send
-    puts "Riemann client#connect is deprecated"
+    warn "Riemann client#connect is deprecated"
   end
 
   # Close both UDP and TCP sockets.
