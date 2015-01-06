@@ -70,16 +70,15 @@ class Riemann::Client
       (response.states || [])
   end
 
+  def connect
+    # NOTE: connections are made automatically on send
+    warn "Riemann client#connect is deprecated"
+  end
+
   # Close both UDP and TCP sockets.
   def close
     @udp.close
     @tcp.close
-  end
-
-  # Connect both UDP and TCP sockets.
-  def connect
-    udp.connect
-    tcp.connect
   end
 
   def connected?
