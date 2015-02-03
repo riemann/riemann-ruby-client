@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bundler', '>= 1.3'
   spec.add_development_dependency 'bacon'
 
-  spec.add_dependency 'beefcake', '>= 0.3.5'
+  spec.add_dependency 'beefcake', ['>= 0.3.5','<= 1.0.0 ']
   spec.add_dependency 'trollop', '>= 1.16.2'
   spec.add_dependency 'mtrc', '>= 0.0.4'
 end
