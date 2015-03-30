@@ -48,8 +48,8 @@ faster than TCP, but you will not know if the server is down or encountered an
 error. You can specify what transport to use by selecting a subclient:
 
 ``` ruby
-c.udp << { :state "ok" } # => nil
-c.tcp << { :state "ok" } # => #<Message ...>
+c.udp << { :state => "ok" } # => nil
+c.tcp << { :state => "ok" } # => #<Message ...>
 c.tcp["true"]            # => [#<Event ... >, ...]
 c.udp["true"]            # => raise Riemann::Client::Unsupported
 ```
