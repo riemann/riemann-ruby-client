@@ -115,8 +115,9 @@ module Riemann
         sock = ::Socket.new(::Socket::AF_INET, ::Socket::SOCK_STREAM, 0)
 
         # close file descriptors if we exec
-        sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
-
+        if Fcntl.constants.include?(:F_SETFD) && Fcntl.constants.include?(:FD_CLOEXEC)
+          sock.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+        end
         # Disable Nagle's algorithm
         sock.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, 1)
 
