@@ -31,9 +31,8 @@ class Riemann::Client
     if block_given?
       begin
         yield self
-      rescue Object => err
+      ensure
         close
-        raise err
       end
     end
   end
