@@ -36,6 +36,14 @@ end
 
 shared "a riemann client" do
 
+  should 'yield itself to given block' do
+    client = nil
+    Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT) do |c|
+      client = c
+    end
+    client.should.be.kind_of?(Client)
+  end
+
   should 'be connected after sending' do
     @client_with_transport.connected?.should.be falsey
     @client.connected?.should.be falsey
