@@ -14,6 +14,8 @@ Bacon.summary_on_exit
 include Riemann
 
 INACTIVITY_TIME = 5
+RIEMANN_IP = ENV["RIEMANN_IP"] || "127.0.0.1"
+RIEMANN_PORT = ENV["RIEMANN_PORT"] || 5555
 
 def roundtrip_metric(m)
   @client_with_transport << {
@@ -33,6 +35,29 @@ def falsey
 end
 
 shared "a riemann client" do
+
+  should 'yield itself to given block' do
+    client = nil
+    Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT) do |c|
+      client = c
+    end
+    client.should.be.kind_of?(Client)
+    client.should.not.be.connected
+  end
+
+  should 'close sockets if given a block that raises' do
+    client = nil
+    begin
+      Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT) do |c|
+        client = c
+        raise "The Boom"
+      end
+    rescue
+      # swallow the exception
+    end
+    client.should.be.kind_of?(Client)
+    client.should.not.be.connected
+  end
 
   should 'be connected after sending' do
     @client_with_transport.connected?.should.be falsey
@@ -152,7 +177,7 @@ end
 
 describe "Riemann::Client (TCP transport)" do
   before do
-    @client = Client.new
+    @client = Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT)
     @client_with_transport = @client.tcp
     @expected_rate = 100
   end
@@ -205,7 +230,7 @@ end
 
 describe "Riemann::Client (UDP transport)" do
   before do
-    @client = Client.new
+    @client = Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT)
     @client_with_transport = @client.udp
     @expected_rate = 1000
   end
