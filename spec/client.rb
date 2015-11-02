@@ -14,6 +14,8 @@ Bacon.summary_on_exit
 include Riemann
 
 INACTIVITY_TIME = 5
+RIEMANN_IP = ENV["RIEMANN_IP"] || "127.0.0.1"
+RIEMANN_PORT = ENV["RIEMANN_PORT"] || 5555
 
 def roundtrip_metric(m)
   @client_with_transport << {
@@ -152,7 +154,7 @@ end
 
 describe "Riemann::Client (TCP transport)" do
   before do
-    @client = Client.new
+    @client = Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT)
     @client_with_transport = @client.tcp
     @expected_rate = 100
   end
@@ -205,7 +207,7 @@ end
 
 describe "Riemann::Client (UDP transport)" do
   before do
-    @client = Client.new
+    @client = Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT)
     @client_with_transport = @client.udp
     @expected_rate = 1000
   end
