@@ -28,7 +28,10 @@ class Riemann::Client
 
     @udp = UDP.new(@options)
     @tcp = TCP.new(@options)
-    yield self if block_given?
+    if block_given?
+      yield self
+      close
+    end
   end
 
   def host
