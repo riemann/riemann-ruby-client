@@ -42,6 +42,21 @@ shared "a riemann client" do
       client = c
     end
     client.should.be.kind_of?(Client)
+    client.should.not.be.connected
+  end
+
+  should 'close sockets if given a block that raises' do
+    client = nil
+    begin
+      Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT) do |c|
+        client = c
+        raise "The Boom"
+      end
+    rescue
+      # swallow the exception
+    end
+    client.should.be.kind_of?(Client)
+    client.should.not.be.connected
   end
 
   should 'be connected after sending' do
