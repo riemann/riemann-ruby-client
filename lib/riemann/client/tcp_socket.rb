@@ -1,6 +1,5 @@
 require 'socket'
 require 'fcntl'
-require 'openssl'
 
 module Riemann
   class Client
@@ -295,7 +294,7 @@ module Riemann
       # Returns the bytes read
       def readpartial(maxlen, outbuf = nil)
         return socket.read_nonblock(maxlen, outbuf)
-      rescue Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::ECONNRESET, OpenSSL::SSL::SSLErrorWaitReadable
+      rescue Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::ECONNRESET
         if wait_readable(read_timeout)
           retry
         else
@@ -316,7 +315,7 @@ module Riemann
           written = socket.write_nonblock(buf)
           buf = buf[written, buf.length]
         end
-      rescue Errno::EWOULDBLOCK, Errno::EINTR, Errno::EAGAIN, Errno::ECONNRESET, OpenSSL::SSL::SSLErrorWaitWritable
+      rescue Errno::EWOULDBLOCK, Errno::EINTR, Errno::EAGAIN, Errno::ECONNRESET
         if wait_writable(write_timeout)
           retry
         else
