@@ -19,13 +19,6 @@ module Riemann
     # Fields which don't really exist in protobufs, but which are reserved
     # and can't be used as attributes.
     VIRTUAL_FIELDS = Set.new([:metric])
-    # Fields which are specially encoded in the Event protobuf--that is, they
-    # can't be used as attributes.
-    RESERVED_FIELDS = fields.map do |i, field|
-      field.name.to_sym
-    end.reduce(VIRTUAL_FIELDS) do |set, field|
-      set << field
-    end
 
     # Average a set of states together. Chooses the mean metric, the mode
     # state, mode service, and the mean time. If init is provided, its values
@@ -177,7 +170,7 @@ module Riemann
         # Add extra attributes to the event as Attribute instances with values
         # converted to String
         self.attributes = hash.map do |key, value|
-          unless RESERVED_FIELDS.include? key.to_sym
+          unless reserved_fields.include? key.to_sym
             Attribute.new(:key => key.to_s,
                           :value => (hash[key] || hash[key.to_sym]).to_s)
           end
@@ -208,7 +201,7 @@ module Riemann
 
     # Look up attributes
     def [](k)
-      if RESERVED_FIELDS.include? k.to_sym
+      if reserved_fields.include? k.to_sym
         super
       else
         r = attributes.find {|a| a.key.to_s == k.to_s }.value
@@ -217,7 +210,7 @@ module Riemann
 
     # Set attributes
     def []=(k, v)
-      if RESERVED_FIELDS.include? k.to_sym
+      if reserved_fields.include? k.to_sym
         super
       else
         a = self.attributes.find {|a| a.key == k.to_s }
@@ -226,6 +219,18 @@ module Riemann
         else
           self.attributes << Attribute.new(:key => k.to_s, :value => v.to_s)
         end
+      end
+    end
+
+    private
+
+    # Fields which are specially encoded in the Event protobuf--that is, they
+    # can't be used as attributes.
+    def reserved_fields
+      @_reserved_fields ||= self.class.fields.map do |i, field|
+        field.name.to_sym
+      end.reduce(VIRTUAL_FIELDS) do |set, field|
+        set << field
       end
     end
   end
