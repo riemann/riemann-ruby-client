@@ -22,7 +22,7 @@ gemspec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.summary = 'Client for the distributed event system Riemann.'
 
-  s.add_dependency 'beefcake', '>= 0.3.5' 
+  s.add_dependency 'beefcake', '~> 0.3.5' 
   s.add_dependency 'trollop', '>= 1.16.2'
   s.add_dependency 'mtrc', '>= 0.0.4'
    
