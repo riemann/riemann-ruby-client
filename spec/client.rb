@@ -8,6 +8,7 @@ require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'riemann
 require 'riemann/client'
 require 'bacon'
 require 'set'
+require 'timecop'
 
 Bacon.summary_on_exit
 
@@ -123,11 +124,13 @@ shared "a riemann client" do
   end
 
   should 'send a state without time' do
-    @client_with_transport << {
-      :state => 'ok',
-      :service => 'timeless test'
-    }
-    wait_for { @client.query('service = "timeless test"').events.first }.time.should.equal Time.now.to_i
+    Timecop.freeze do
+      @client_with_transport << {
+        :state => 'ok',
+        :service => 'timeless test'
+      }
+      wait_for { @client.query('service = "timeless test"').events.first }.time.should.equal Time.now.to_i
+    end
   end
 
   should "query states" do

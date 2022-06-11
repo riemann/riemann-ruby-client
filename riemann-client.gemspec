@@ -23,6 +23,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency 'bundler', '>= 1.3'
   spec.add_development_dependency 'bacon'
+  spec.add_development_dependency 'timecop'
 
   spec.add_dependency 'beefcake', ['>= 1.0.0 ']
   spec.add_dependency 'mtrc', '>= 0.0.4'
