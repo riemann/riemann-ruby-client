@@ -29,6 +29,17 @@ jobs:
         run: |
           wget --quiet https://github.com/riemann/riemann/releases/download/0.3.8/riemann_0.3.8_all.deb
           sudo dpkg -i riemann_0.3.8_all.deb
+
+          sudo systemctl stop riemann
+
+          sudo openssl genrsa -out /etc/riemann/riemann_server.key 4096
+          sudo openssl pkcs8 -topk8 -nocrypt -in /etc/riemann/riemann_server.key -out /etc/riemann/riemann_server.pkcs8
+          sudo openssl req -x509 -new -nodes -key /etc/riemann/riemann_server.key -days 7 -out /etc/riemann/riemann_server.crt -subj '/CN=localhost'
+          sudo chmod +r /etc/riemann/riemann_server.pkcs8
+          sudo cp -v spec/riemann.config /etc/riemann/
+
+          sudo systemctl start riemann
+
           while ! nc -z localhost 5555; do sleep 1; done
       - name: Run the test suite
         run: bundle exec bacon spec/*.rb
