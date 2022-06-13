@@ -1,0 +1,34 @@
+---
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version:
+          - 2.7
+          - 3.0
+          - 3.1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - name: Install riemann
+        run: |
+          wget --quiet https://github.com/riemann/riemann/releases/download/0.3.8/riemann_0.3.8_all.deb
+          sudo dpkg -i riemann_0.3.8_all.deb
+          while ! nc -z localhost 5555; do sleep 1; done
+      - name: Run the test suite
+        run: bundle exec bacon spec/*.rb
