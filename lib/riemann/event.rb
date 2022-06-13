@@ -11,6 +11,7 @@ module Riemann
     repeated :tags, :string, 7
     optional :ttl, :float, 8
     repeated :attributes, Attribute, 9
+    optional :time_micros, :int64, 10
 
     optional :metric_sint64, :sint64, 13
     optional :metric_d, :double, 14
@@ -25,6 +26,10 @@ module Riemann
       field.name.to_sym
     end.reduce(VIRTUAL_FIELDS) do |set, field|
       set << field
+    end
+
+    def self.now
+      (Time.now.to_f * 1_000_000).to_i
     end
 
     # Average a set of states together. Chooses the mean metric, the mode
@@ -51,12 +56,12 @@ module Riemann
       init.service ||= mode states.map(&:service)
 
       # Time
-      init.time = begin
-        times = states.map(&:time).compact
+      init.time_micros = begin
+        times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
       rescue
       end
-      init.time ||= Time.now.to_i
+      init.time_micros ||= now
 
       init
     end
@@ -85,12 +90,12 @@ module Riemann
       init.service ||= mode states.map(&:service)
 
       # Time
-      init.time = begin
-        times = states.map(&:time).compact
+      init.time_micros = begin
+        times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
       rescue
       end
-      init.time ||= Time.now.to_i
+      init.time_micros ||= now
 
       init
     end
@@ -119,12 +124,12 @@ module Riemann
       end
 
       # Time
-      init.time = begin
-        times = states.map(&:time).compact
+      init.time_micros = begin
+        times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
       rescue
       end
-      init.time ||= Time.now.to_i
+      init.time_micros ||= now
 
       init
     end
@@ -186,7 +191,7 @@ module Riemann
         super()
       end
 
-      @time ||= Time.now.to_i
+      @time_micros ||= self.class.now unless @time
     end
 
     def metric

@@ -112,22 +112,38 @@ shared "a riemann client" do
   end
 
   should 'send a state with a time' do
-    t = Time.now.to_i - 10
-    @client_with_transport << {
-      :state => 'ok',
-      :service => 'test',
-      :time => t
-    }
-    wait_for { @client.query('service = "test"').events.first }.time.should.equal t
+    Timecop.freeze do
+      t = (Time.now - 10).to_i
+      @client_with_transport << {
+        :state => 'ok',
+        :service => 'test',
+        :time => t
+      }
+      wait_for { @client.query('service = "test"').events.first }.time.should.equal t
+      wait_for { @client.query('service = "test"').events.first }.time_micros.should.equal t * 1_000_000
+    end
   end
 
-  should 'send a state without time' do
+  should 'send a state with a time_micros' do
+    Timecop.freeze do
+      t = ((Time.now - 10).to_f * 1_000_000).to_i
+      @client_with_transport << {
+        :state => 'ok',
+        :service => 'test',
+        :time_micros => t
+      }
+      wait_for { @client.query('service = "test"').events.first }.time.should.equal (Time.now - 10).to_i
+      wait_for { @client.query('service = "test"').events.first }.time_micros.should.equal t
+    end
+  end
+
+  should 'send a state without time nor time_micros' do
     Timecop.freeze do
       @client_with_transport << {
         :state => 'ok',
         :service => 'timeless test'
       }
-      wait_for { @client.query('service = "timeless test"').events.first }.time.should.equal Time.now.to_i
+      wait_for { @client.query('service = "timeless test"').events.first }.time_micros.should.equal (Time.now.to_f * 1_000_000).to_i
     end
   end
 
