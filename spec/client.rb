@@ -20,9 +20,14 @@ def wait_for(&block)
   tries = 0
   while tries < 30
     tries += 1
-    res = block.call
-
-    return res unless res.nil?
+    begin
+      res = block.call
+      return res if res
+    rescue NoMethodError
+      # If a query returns no result (#query retruns nil or #[] returns []),
+      # calling #first on it will raise a NoMethodError.  We can ignore it for
+      # these tests.
+    end
     sleep(0.1)
   end
 
@@ -119,8 +124,10 @@ shared "a riemann client" do
         :service => 'test',
         :time => t
       }
-      wait_for { @client.query('service = "test"').events.first }.time.should.equal t
-      wait_for { @client.query('service = "test"').events.first }.time_micros.should.equal t * 1_000_000
+      wait_for { @client.query('service = "test"').events.first.time == t }
+      e = @client.query('service = "test"').events.first
+      e.time.should.equal t
+      e.time_micros.should.equal t * 1_000_000
     end
   end
 
@@ -132,25 +139,31 @@ shared "a riemann client" do
         :service => 'test',
         :time_micros => t
       }
-      wait_for { @client.query('service = "test"').events.first }.time.should.equal (Time.now - 10).to_i
-      wait_for { @client.query('service = "test"').events.first }.time_micros.should.equal t
+      wait_for { @client.query('service = "test"').events.first.time_micros == t }
+      e = @client.query('service = "test"').events.first
+      e.time.should.equal (Time.now - 10).to_i
+      e.time_micros.should.equal t
     end
   end
 
   should 'send a state without time nor time_micros' do
-    Timecop.freeze do
-      @client_with_transport << {
-        :state => 'ok',
-        :service => 'timeless test'
-      }
-      wait_for { @client.query('service = "timeless test"').events.first }.time_micros.should.equal (Time.now.to_f * 1_000_000).to_i
-    end
+    time_before = (Time.now.to_f * 1_000_000).to_i
+    @client_with_transport << {
+      :state => 'ok',
+      :service => 'timeless test'
+    }
+    wait_for { @client.query('service = "timeless test"').events.first.time_micros >= time_before }
+    e = @client.query('service = "timeless test"').events.first
+    time_after = (Time.now.to_f * 1_000_000).to_i
+
+    [time_before, e.time_micros, time_after].sort.should.equal([time_before, e.time_micros, time_after])
   end
 
   should "query states" do
     @client_with_transport << { :state => 'critical', :service => '1' }
     @client_with_transport << { :state => 'warning', :service => '2' }
     @client_with_transport << { :state => 'critical', :service => '3' }
+    wait_for { @client.query('service = "3"').events.first }
     @client.query.events.
       map(&:service).to_set.should.superset ['1', '2', '3'].to_set
     @client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events.
@@ -230,7 +243,7 @@ describe "Riemann::Client (TLS transport)" do
       :state => 'warning',
       :service => 'survive TCP inactivity',
     })
-    wait_for { @client['service = "survive TCP inactivity"'].first }.state.should.equal 'warning'
+    wait_for { @client['service = "survive TCP inactivity"'].first.state == 'warning' }
 
     sleep INACTIVITY_TIME
 
@@ -238,7 +251,7 @@ describe "Riemann::Client (TLS transport)" do
       :state => 'ok',
       :service => 'survive TCP inactivity',
     }).ok.should.be truthy
-    wait_for { @client['service = "survive TCP inactivity"'].first }.state.should.equal 'ok'
+    wait_for { @client['service = "survive TCP inactivity"'].first.state == 'ok' }
   end
 
   should 'survive local close' do
@@ -246,7 +259,7 @@ describe "Riemann::Client (TLS transport)" do
       :state => 'warning',
       :service => 'survive TCP local close',
     }).ok.should.be truthy
-    wait_for { @client['service = "survive TCP local close"'].first } .state.should.equal 'warning'
+    wait_for { @client['service = "survive TCP local close"'].first .state == 'warning' }
 
     @client.close
 
@@ -254,7 +267,7 @@ describe "Riemann::Client (TLS transport)" do
       :state => 'ok',
       :service => 'survive TCP local close',
     }).ok.should.be truthy
-    wait_for { @client['service = "survive TCP local close"'].first }.state.should.equal 'ok'
+    wait_for { @client['service = "survive TCP local close"'].first.state == 'ok' }
   end
 end
 
@@ -283,7 +296,7 @@ describe "Riemann::Client (TCP transport)" do
       :state => 'warning',
       :service => 'survive TCP inactivity',
     })
-    wait_for { @client['service = "survive TCP inactivity"'].first }.state.should.equal 'warning'
+    wait_for { @client['service = "survive TCP inactivity"'].first.state == 'warning' }
 
     sleep INACTIVITY_TIME
 
@@ -291,7 +304,7 @@ describe "Riemann::Client (TCP transport)" do
       :state => 'ok',
       :service => 'survive TCP inactivity',
     }).ok.should.be truthy
-    wait_for { @client['service = "survive TCP inactivity"'].first }.state.should.equal 'ok'
+    wait_for { @client['service = "survive TCP inactivity"'].first.state == 'ok' }
   end
 
   should 'survive local close' do
@@ -299,7 +312,7 @@ describe "Riemann::Client (TCP transport)" do
       :state => 'warning',
       :service => 'survive TCP local close',
     }).ok.should.be truthy
-    wait_for { @client['service = "survive TCP local close"'].first } .state.should.equal 'warning'
+    wait_for { @client['service = "survive TCP local close"'].first.state == 'warning' }
 
     @client.close
 
@@ -307,7 +320,7 @@ describe "Riemann::Client (TCP transport)" do
       :state => 'ok',
       :service => 'survive TCP local close',
     }).ok.should.be truthy
-    wait_for { @client['service = "survive TCP local close"'].first }.state.should.equal 'ok'
+    wait_for { @client['service = "survive TCP local close"'].first.state == 'ok' }
   end
 end
 
@@ -335,32 +348,32 @@ describe "Riemann::Client (UDP transport)" do
     @client_with_transport.<<({
       :state => 'warning',
       :service => 'survive UDP inactivity',
-    })
-    wait_for { @client['service = "survive UDP inactivity"'].first } .state.should.equal 'warning'
+    }).should.be.nil
+    wait_for { @client['service = "survive UDP inactivity"'].first.state == 'warning' }
 
     sleep INACTIVITY_TIME
 
     @client_with_transport.<<({
       :state => 'ok',
       :service => 'survive UDP inactivity',
-    })
-    wait_for { @client['service = "survive UDP inactivity"'].first } .state.should.equal 'ok'
+    }).should.be.nil
+    wait_for { @client['service = "survive UDP inactivity"'].first.state == 'ok' }
   end
 
   should 'survive local close' do
     @client_with_transport.<<({
       :state => 'warning',
       :service => 'survive UDP local close',
-    })
-    wait_for { @client['service = "survive UDP local close"'].first }.state.should.equal 'warning'
+    }).should.be.nil
+    wait_for { @client['service = "survive UDP local close"'].first.state == 'warning' }
 
     @client.close
 
     @client_with_transport.<<({
       :state => 'ok',
       :service => 'survive UDP local close',
-    })
-    wait_for { @client['service = "survive UDP local close"'].first }.state.should.equal 'ok'
+    }).should.be.nil
+    wait_for { @client['service = "survive UDP local close"'].first.state == 'ok' }
   end
 
   should "raise Riemann::Client::Unsupported exception on query" do
