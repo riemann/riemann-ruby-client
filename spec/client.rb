@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 # How to run the bacon tests:
-#   1. Start Riemann on default location 127.0.0.1:5555
+#   1. Start Riemann using the config from riemann.config
 #   2. $ bundle exec bacon spec/client.rb
 
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'riemann'))
@@ -15,8 +15,6 @@ Bacon.summary_on_exit
 include Riemann
 
 INACTIVITY_TIME = 5
-RIEMANN_IP = ENV["RIEMANN_IP"] || "127.0.0.1"
-RIEMANN_PORT = ENV["RIEMANN_PORT"] || 5555
 
 def wait_for(&block)
   tries = 0
@@ -53,7 +51,7 @@ shared "a riemann client" do
 
   should 'yield itself to given block' do
     client = nil
-    Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT) do |c|
+    Client.new(:host => "localhost", :port => 5555) do |c|
       client = c
     end
     client.should.be.kind_of?(Client)
@@ -63,7 +61,7 @@ shared "a riemann client" do
   should 'close sockets if given a block that raises' do
     client = nil
     begin
-      Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT) do |c|
+      Client.new(:host => "localhost", :port => 5555) do |c|
         client = c
         raise "The Boom"
       end
@@ -191,10 +189,62 @@ shared "a riemann client" do
 
 end
 
+describe "Riemann::Client (TLS transport)" do
+  before do
+    @client = Client.new(:host => "localhost", :port => 5554, :ssl => true, :key_file => '/etc/riemann/riemann_server.pkcs8', :cert_file => '/etc/riemann/riemann_server.crt', :ca_file => '/etc/riemann/riemann_server.crt', :ssl_verify => true)
+    @client_with_transport = @client.tcp
+    @expected_rate = 100
+  end
+  behaves_like "a riemann client"
+
+  should 'send a state' do
+    res = @client_with_transport << {
+      :state => 'ok',
+      :service => 'test',
+      :description => 'desc',
+      :metric_f => 1.0
+    }
+
+    res.ok.should.be truthy
+    wait_for { @client['service = "test"'].first }.state.should.equal 'ok'
+  end
+
+  should 'survive inactivity' do
+    @client_with_transport.<<({
+      :state => 'warning',
+      :service => 'survive TCP inactivity',
+    })
+    wait_for { @client['service = "survive TCP inactivity"'].first }.state.should.equal 'warning'
+
+    sleep INACTIVITY_TIME
+
+    @client_with_transport.<<({
+      :state => 'ok',
+      :service => 'survive TCP inactivity',
+    }).ok.should.be truthy
+    wait_for { @client['service = "survive TCP inactivity"'].first }.state.should.equal 'ok'
+  end
+
+  should 'survive local close' do
+    @client_with_transport.<<({
+      :state => 'warning',
+      :service => 'survive TCP local close',
+    }).ok.should.be truthy
+    wait_for { @client['service = "survive TCP local close"'].first } .state.should.equal 'warning'
+
+    @client.close
+
+    @client_with_transport.<<({
+      :state => 'ok',
+      :service => 'survive TCP local close',
+    }).ok.should.be truthy
+    wait_for { @client['service = "survive TCP local close"'].first }.state.should.equal 'ok'
+  end
+end
 
 describe "Riemann::Client (TCP transport)" do
   before do
-    @client = Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT)
+    @client = Client.new(:host => "localhost", :port => 5555)
     @client_with_transport = @client.tcp
     @expected_rate = 100
   end
@@ -247,7 +297,7 @@ end
 
 describe "Riemann::Client (UDP transport)" do
   before do
-    @client = Client.new(:host => RIEMANN_IP, :port => RIEMANN_PORT)
+    @client = Client.new(:host => "localhost", :port => 5555)
     @client_with_transport = @client.udp
     @expected_rate = 1000
   end

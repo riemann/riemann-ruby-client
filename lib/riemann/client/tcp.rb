@@ -1,5 +1,6 @@
 require 'monitor'
 require 'riemann/client/tcp_socket'
+require 'riemann/client/ssl_socket'
 
 module Riemann
   class Client
@@ -14,7 +15,13 @@ module Riemann
 
       # Public: Return a socket factory
       def self.socket_factory
-        @socket_factory || proc { |options| TcpSocket.connect(options) }
+        @socket_factory || proc { |options|
+          if options[:ssl]
+            SSLSocket.connect(options)
+          else
+            TcpSocket.connect(options)
+          end
+        }
       end
 
       def initialize(options = {})
