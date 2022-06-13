@@ -20,7 +20,7 @@ module Riemann
             ctx.cert = OpenSSL::X509::Certificate.new(open(@cert_file) {|f| f.read})
             ctx.ca_file = @ca_file if @ca_file
             ctx.ssl_version = :TLSv1_2
-            context.verify_mode = OpenSSL::SSL::VERIFY_PEER if @ssl_verify
+            ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER if @ssl_verify
         end
       end
 
