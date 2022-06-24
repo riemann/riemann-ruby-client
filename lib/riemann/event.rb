@@ -26,7 +26,7 @@ module Riemann
     # can't be used as attributes.
     RESERVED_FIELDS = fields.map do |_i, field|
       field.name.to_sym
-    end.reduce(VIRTUAL_FIELDS) do |set, field|
+    end.reduce(VIRTUAL_FIELDS) do |set, field| # rubocop:disable Style/MultilineBlockChain
       set << field
     end
 
@@ -136,7 +136,7 @@ module Riemann
     def self.mode(array)
       array.each_with_object(Hash.new(0)) do |e, counts|
         counts[e] += 1
-      end.max_by { |_e, count| count }.first
+      end.max_by { |_e, count| count }.first # rubocop:disable Style/MultilineBlockChain
     rescue StandardError
       nil
     end

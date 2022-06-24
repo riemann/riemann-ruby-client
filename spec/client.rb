@@ -13,7 +13,7 @@ require 'timecop'
 
 Bacon.summary_on_exit
 
-include Riemann
+include Riemann # rubocop:disable Style/MixinUsage
 
 INACTIVITY_TIME = 5
 

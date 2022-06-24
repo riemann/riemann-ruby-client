@@ -1,0 +1,18 @@
+---
+Metrics/AbcSize:
+  Enabled: false
+Metrics/BlockLength:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/MethodLength:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Naming/VariableNumber:
+  AllowedIdentifiers:
+  - TLSv1_2
+Style/Documentation:
+  Enabled: false
