@@ -185,7 +185,7 @@ shared 'a riemann client' do
     t2 = Time.now
 
     rate = total / (t2 - t1)
-    puts "\n     #{'%.2f' % rate} queries/sec (#{format('%.2f', (1000 / rate))}ms per query)"
+    puts "\n     #{format('%.2f', rate)} queries/sec (#{format('%.2f', (1000 / rate))}ms per query)"
     rate.should > 100
   end
 
@@ -210,7 +210,7 @@ shared 'a riemann client' do
     t2 = Time.now
 
     rate = total / (t2 - t1)
-    puts "\n     #{'%.2f' % rate} inserts/sec (#{format('%.2f', (1000 / rate))}ms per insert)"
+    puts "\n     #{format('%.2f', rate)} inserts/sec (#{format('%.2f', (1000 / rate))}ms per insert)"
     rate.should > @expected_rate
   end
 end
