@@ -17,8 +17,8 @@ module Riemann
 
       def ssl_context
         @ssl_context ||= OpenSSL::SSL::SSLContext.new.tap do |ctx|
-          ctx.key = OpenSSL::PKey::RSA.new(open(@key_file, &:read))
-          ctx.cert = OpenSSL::X509::Certificate.new(open(@cert_file, &:read))
+          ctx.key = OpenSSL::PKey::RSA.new(File.read(@key_file))
+          ctx.cert = OpenSSL::X509::Certificate.new(File.read(@cert_file))
           ctx.ca_file = @ca_file if @ca_file
           ctx.ssl_version = :TLSv1_2
           ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER if @ssl_verify
