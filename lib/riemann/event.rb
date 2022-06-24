@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 module Riemann
   class Event
     require 'set'
     include Beefcake::Message
 
     optional :time, :int64, 1
-    optional :state, :string,  2
+    optional :state, :string, 2
     optional :service, :string, 3
     optional :host, :string, 4
     optional :description, :string, 5
@@ -22,9 +24,9 @@ module Riemann
     VIRTUAL_FIELDS = Set.new([:metric])
     # Fields which are specially encoded in the Event protobuf--that is, they
     # can't be used as attributes.
-    RESERVED_FIELDS = fields.map do |i, field|
+    RESERVED_FIELDS = fields.map do |_i, field|
       field.name.to_sym
-    end.reduce(VIRTUAL_FIELDS) do |set, field|
+    end.reduce(VIRTUAL_FIELDS) do |set, field| # rubocop:disable Style/MultilineBlockChain
       set << field
     end
 
@@ -44,12 +46,10 @@ module Riemann
              end
 
       # Metric
-      init.metric_f ||= states.inject(0.0) { |a, state|
-          a + (state.metric || 0)
-        } / states.size
-      if init.metric_f.nan?
-        init.metric_f = 0.0
-      end
+      init.metric_f ||= states.inject(0.0) do |a, state|
+        a + (state.metric || 0)
+      end / states.size
+      init.metric_f = 0.0 if init.metric_f.nan?
 
       # Event
       init.state ||= mode states.map(&:state)
@@ -59,7 +59,8 @@ module Riemann
       init.time_micros = begin
         times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
-      rescue
+      rescue ZeroDivisionError
+        nil
       end
       init.time_micros ||= now
 
@@ -78,12 +79,10 @@ module Riemann
              end
 
       # Metric
-      init.metric_f ||= states.inject(0.0) { |a, state|
-          a + (state.metric || 0)
-        }
-      if init.metric_f.nan?
-        init.metric_f = 0.0
+      init.metric_f ||= states.inject(0.0) do |a, state|
+        a + (state.metric || 0)
       end
+      init.metric_f = 0.0 if init.metric_f.nan?
 
       # Event
       init.state ||= mode states.map(&:state)
@@ -93,7 +92,8 @@ module Riemann
       init.time_micros = begin
         times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
-      rescue
+      rescue ZeroDivisionError
+        nil
       end
       init.time_micros ||= now
 
@@ -111,12 +111,10 @@ module Riemann
              end
 
       # Metric
-      init.metric_f ||= states.inject(0.0) { |a, state|
-          a + (state.metric || 0)
-        }
-      if init.metric.nan?
-        init.metric = 0.0
+      init.metric_f ||= states.inject(0.0) do |a, state|
+        a + (state.metric || 0)
       end
+      init.metric = 0.0 if init.metric.nan?
 
       # Event
       init.state ||= states.inject(nil) do |max, state|
@@ -127,7 +125,8 @@ module Riemann
       init.time_micros = begin
         times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
-      rescue
+      rescue ZeroDivisionError
+        nil
       end
       init.time_micros ||= now
 
@@ -135,23 +134,23 @@ module Riemann
     end
 
     def self.mode(array)
-      array.inject(Hash.new(0)) do |counts, e|
+      array.each_with_object(Hash.new(0)) do |e, counts|
         counts[e] += 1
-        counts
-      end.sort_by { |e, count| count }.last.first rescue nil
+      end.max_by { |_e, count| count }.first # rubocop:disable Style/MultilineBlockChain
+    rescue StandardError
+      nil
     end
 
     # Partition a list of states by a field
     # Returns a hash of field_value => state
     def self.partition(states, field)
-      states.inject({}) do |p, state|
+      states.each_with_object({}) do |state, p|
         k = state.send field
         if p.include? k
           p[k] << state
         else
           p[k] = [state]
         end
-        p
       end
     end
 
@@ -172,19 +171,15 @@ module Riemann
 
     def initialize(hash = nil)
       if hash
-        if hash[:metric]
-          super hash
-          self.metric = hash[:metric]
-        else
-          super hash
-        end
+        super hash
+        self.metric = hash[:metric] if hash[:metric]
 
         # Add extra attributes to the event as Attribute instances with values
         # converted to String
-        self.attributes = hash.map do |key, value|
+        self.attributes = hash.map do |key, _value|
           unless RESERVED_FIELDS.include? key.to_sym
-            Attribute.new(:key => key.to_s,
-                          :value => (hash[key] || hash[key.to_sym]).to_s)
+            Attribute.new(key: key.to_s,
+                          value: (hash[key] || hash[key.to_sym]).to_s)
           end
         end.compact
       else
@@ -200,36 +195,35 @@ module Riemann
         metric_f
     end
 
-    def metric=(m)
-      if Integer === m and (-(2**63)...2**63) === m
+    def metric=(value)
+      if value.is_a?(Integer) && (-(2**63)...2**63).include?(value)
         # Long
-        self.metric_sint64 = m
-        self.metric_f = m.to_f
+        self.metric_sint64 = value
       else
-        self.metric_d = m.to_f
-        self.metric_f = m.to_f
+        self.metric_d = value.to_f
       end
+      self.metric_f = value.to_f
     end
 
     # Look up attributes
-    def [](k)
-      if RESERVED_FIELDS.include? k.to_sym
+    def [](key)
+      if RESERVED_FIELDS.include? key.to_sym
         super
       else
-        r = attributes.find {|a| a.key.to_s == k.to_s }.value
+        attributes.find { |a| a.key.to_s == key.to_s }.value
       end
     end
 
     # Set attributes
-    def []=(k, v)
-      if RESERVED_FIELDS.include? k.to_sym
+    def []=(key, value)
+      if RESERVED_FIELDS.include? key.to_sym
         super
       else
-        a = self.attributes.find {|a| a.key == k.to_s }
-        if(a)
-          a.value = v.to_s
+        attr = attributes.find { |a| a.key == key.to_s }
+        if attr
+          attr.value = value.to_s
         else
-          self.attributes << Attribute.new(:key => k.to_s, :value => v.to_s)
+          attributes << Attribute.new(key: key.to_s, value: value.to_s)
         end
       end
     end

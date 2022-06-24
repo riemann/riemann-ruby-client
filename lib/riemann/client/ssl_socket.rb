@@ -1,11 +1,12 @@
+# frozen_string_literal: true
+
 require 'openssl'
 require_relative 'tcp_socket'
 
 module Riemann
   class Client
-  # Socket: A specialized socket that has been configure
+    # Socket: A specialized socket that has been configure
     class SSLSocket < TcpSocket
-
       def initialize(options = {})
         super(options)
         @key_file = options[:key_file]
@@ -16,11 +17,11 @@ module Riemann
 
       def ssl_context
         @ssl_context ||= OpenSSL::SSL::SSLContext.new.tap do |ctx|
-            ctx.key = OpenSSL::PKey::RSA.new(open(@key_file) {|f| f.read})
-            ctx.cert = OpenSSL::X509::Certificate.new(open(@cert_file) {|f| f.read})
-            ctx.ca_file = @ca_file if @ca_file
-            ctx.ssl_version = :TLSv1_2
-            ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER if @ssl_verify
+          ctx.key = OpenSSL::PKey::RSA.new(File.read(@key_file))
+          ctx.cert = OpenSSL::X509::Certificate.new(File.read(@cert_file))
+          ctx.ca_file = @ca_file if @ca_file
+          ctx.ssl_version = :TLSv1_2
+          ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER if @ssl_verify
         end
       end
 
@@ -30,7 +31,7 @@ module Riemann
       #
       # Return the ::Socket when it is connected, or raise an Error if no
       # connection was possible.
-      def connect_nonblock( addr, timeout )
+      def connect_nonblock(addr, timeout)
         sock = super(addr, timeout)
         ssl_socket = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
         ssl_socket.sync = true
@@ -38,17 +39,17 @@ module Riemann
         begin
           ssl_socket.connect_nonblock
         rescue IO::WaitReadable
-          if IO.select([ssl_socket], nil, nil, timeout)
-            retry
-          else
+          unless IO.select([ssl_socket], nil, nil, timeout)
             raise Timeout, "Could not read from #{host}:#{port} in #{timeout} seconds"
           end
+
+          retry
         rescue IO::WaitWritable
-          if IO.select(nil, [ssl_socket], nil, timeout)
-            retry
-          else
+          unless IO.select(nil, [ssl_socket], nil, timeout)
             raise Timeout, "Could not write to #{host}:#{port} in #{timeout} seconds"
           end
+
+          retry
         end
         ssl_socket
       end
@@ -60,13 +61,13 @@ module Riemann
       #
       # Returns the bytes read
       def readpartial(maxlen, outbuf = nil)
-        return super(maxlen, outbuf)
+        super(maxlen, outbuf)
       rescue OpenSSL::SSL::SSLErrorWaitReadable
-        if wait_readable(read_timeout)
-          retry
-        else
+        unless wait_readable(read_timeout)
           raise Timeout, "Could not read from #{host}:#{port} in #{read_timeout} seconds"
         end
+
+        retry
       end
 
       # Internal: Write the given data to the socket
@@ -80,11 +81,11 @@ module Riemann
       def write(buf)
         super(buf)
       rescue OpenSSL::SSL::SSLErrorWaitWritable
-        if wait_writable(write_timeout)
-          retry
-        else
+        unless wait_writable(write_timeout)
           raise Timeout, "Could not write to #{host}:#{port} in #{write_timeout} seconds"
         end
+
+        retry
       end
     end
   end

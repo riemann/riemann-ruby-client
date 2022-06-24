@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 module Riemann
   class State
     include Beefcake::Message
-    
-    optional :time, :int64, 1 
-    optional :state, :string,  2
+
+    optional :time, :int64, 1
+    optional :state, :string, 2
     optional :service, :string, 3
     optional :host, :string, 4
     optional :description, :string, 5
@@ -12,8 +14,8 @@ module Riemann
     optional :ttl, :float, 8
     optional :metric_f, :float, 15
 
-    def initialize(*a)
-      super *a
+    def initialize
+      super
 
       @time ||= Time.now.to_i
     end
@@ -22,8 +24,6 @@ module Riemann
       @metric || metric_f
     end
 
-    def metric=(m)
-      @metric = m
-    end
+    attr_writer :metric
   end
 end

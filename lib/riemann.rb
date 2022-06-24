@@ -1,6 +1,6 @@
-module Riemann
-  $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
+# frozen_string_literal: true
 
+module Riemann
   require 'rubygems'
   require 'beefcake'
   require 'timeout'
@@ -10,5 +10,4 @@ module Riemann
   require 'riemann/event'
   require 'riemann/query'
   require 'riemann/message'
-  require 'riemann/client'
 end

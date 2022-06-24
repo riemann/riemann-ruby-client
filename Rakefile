@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require 'riemann'
 
-require "bundler/gem_tasks"
+require 'bundler/gem_tasks'
 
 require 'github_changelog_generator/task'
 

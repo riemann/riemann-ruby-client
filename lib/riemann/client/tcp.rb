@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'monitor'
 require 'riemann/client/tcp_socket'
 require 'riemann/client/ssl_socket'
@@ -5,12 +7,12 @@ require 'riemann/client/ssl_socket'
 module Riemann
   class Client
     class TCP < Client
-      attr_accessor :host, :port, :socket
+      attr_accessor :host, :port
 
       # Public: Set a socket factory -- an object responding
       # to #call(options) that returns a Socket object
-      def self.socket_factory=(factory)
-        @socket_factory = factory
+      class << self
+        attr_writer :socket_factory
       end
 
       # Public: Return a socket factory
@@ -24,16 +26,14 @@ module Riemann
         }
       end
 
-      def initialize(options = {})
+      def initialize(options = {}) # rubocop:disable Lint/MissingSuper
         @options = options
         @locket  = Monitor.new
       end
 
       def socket
         @locket.synchronize do
-          if @pid && @pid != Process.pid
-            close
-          end
+          close if @pid && @pid != Process.pid
 
           return @socket if connected?
 
@@ -58,32 +58,32 @@ module Riemann
       end
 
       # Read a message from a stream
-      def read_message(s)
-        if buffer = s.read(4) and buffer.size == 4
-          length = buffer.unpack('N').first
-          begin
-            str = s.read length
-            message = Riemann::Message.decode str
-          rescue => e
-            puts "Message was #{str.inspect}"
-            raise
-          end
-
-          unless message.ok
-            puts "Failed"
-            raise ServerError, message.error
-          end
-
-          message
-        else
-          raise InvalidResponse, "unexpected EOF"
+      def read_message(socket)
+        unless (buffer = socket.read(4)) && (buffer.size == 4)
+          raise InvalidResponse, 'unexpected EOF'
         end
+
+        length = buffer.unpack1('N')
+        begin
+          str = socket.read length
+          message = Riemann::Message.decode str
+        rescue StandardError
+          puts "Message was #{str.inspect}"
+          raise
+        end
+
+        unless message.ok
+          puts 'Failed'
+          raise ServerError, message.error
+        end
+
+        message
       end
 
       def send_recv(message)
-        with_connection do |s|
-          s.write(message.encode_with_length)
-          read_message(s)
+        with_connection do |socket|
+          socket.write(message.encode_with_length)
+          read_message(socket)
         end
       end
 
@@ -94,17 +94,17 @@ module Riemann
         tries = 0
 
         @locket.synchronize do
-          begin
-            tries += 1
-            yield(socket)
-          rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, InvalidResponse, Timeout::Error, Riemann::Client::TcpSocket::Error
-            close
-            raise if tries > 3
-            retry
-          rescue Exception
-            close
-            raise
-          end
+          tries += 1
+          yield(socket)
+        rescue IOError, Errno::EPIPE, Errno::ECONNREFUSED, InvalidResponse, Timeout::Error,
+               Riemann::Client::TcpSocket::Error
+          close
+          raise if tries > 3
+
+          retry
+        rescue StandardError
+          close
+          raise
         end
       end
     end
