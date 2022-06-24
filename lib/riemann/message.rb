@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Riemann
   class Message
     include Beefcake::Message

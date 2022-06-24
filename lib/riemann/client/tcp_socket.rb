@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'socket'
 require 'fcntl'
 
 module Riemann
   class Client
-  # Socket: A specialized socket that has been configure
+    # Socket: A specialized socket that has been configure
     class TcpSocket
       class Error < Riemann::Client::Error; end
       class Timeout < Error; end
@@ -68,7 +70,6 @@ module Riemann
       #   connection dead and notifying the application layer.
       attr_reader :keepalive_count
 
-
       # Internal: Create and connect to the given location.
       #
       # options, same as Constructor
@@ -77,11 +78,11 @@ module Riemann
       def self.connect(options = {})
         s = new(options)
         s.connect
-        return s
+        s
       end
 
       # Internal: Creates a new KJess::Socket
-      def initialize( options = {} )
+      def initialize(options = {})
         @host = options[:host]
         @port = options[:port]
 
@@ -113,7 +114,7 @@ module Riemann
       # Returns a new ::Socket instance for
 
       def socket_factory(type)
-         sock = ::Socket.new(type, ::Socket::SOCK_STREAM, 0)
+        sock = ::Socket.new(type, ::Socket::SOCK_STREAM, 0)
 
         # close file descriptors if we exec
         if Fcntl.constants.include?(:F_SETFD) && Fcntl.constants.include?(:FD_CLOEXEC)
@@ -122,14 +123,14 @@ module Riemann
         # Disable Nagle's algorithm
         sock.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, 1)
 
-        if using_keepalive? then
-          sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE , true)
-          sock.setsockopt(::Socket::SOL_TCP,    ::Socket::TCP_KEEPIDLE , keepalive_idle)
+        if using_keepalive?
+          sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
+          sock.setsockopt(::Socket::SOL_TCP,    ::Socket::TCP_KEEPIDLE, keepalive_idle)
           sock.setsockopt(::Socket::SOL_TCP,    ::Socket::TCP_KEEPINTVL, keepalive_interval)
-          sock.setsockopt(::Socket::SOL_TCP,    ::Socket::TCP_KEEPCNT  , keepalive_count)
+          sock.setsockopt(::Socket::SOL_TCP,    ::Socket::TCP_KEEPCNT, keepalive_count)
         end
 
-        return sock
+        sock
       end
 
       # Internal: Return the connected raw Socket.
@@ -139,7 +140,8 @@ module Riemann
       # Returns a ::Socket
       def socket
         return @socket unless closed?
-        @socket ||= connect()
+
+        @socket ||= connect
       end
 
       # Internal: Closes the internal ::Socket
@@ -154,7 +156,8 @@ module Riemann
       def closed?
         return true if @socket.nil?
         return true if @socket.closed?
-        return false
+
+        false
       end
 
       # Internal:
@@ -169,16 +172,16 @@ module Riemann
         deadline = Time.now.to_f + connect_timeout
 
         # Lookup destination address, we only want TCP.
-        addrs      = ::Socket.getaddrinfo(host, port, nil, ::Socket::SOCK_STREAM )
+        addrs      = ::Socket.getaddrinfo(host, port, nil, ::Socket::SOCK_STREAM)
         errors     = []
-        conn_error = lambda { raise errors.first }
+        conn_error = -> { raise errors.first }
         sock       = nil
 
         # Sort it so we get AF_INET, IPv4
-        addrs.sort.find( conn_error ) do |addr|
-          sock = connect_or_error( addr, deadline, errors )
+        addrs.sort.find(conn_error) do |addr|
+          sock = connect_or_error(addr, deadline, errors)
         end
-        return sock
+        sock
       end
 
       # Internal: Connect to the destination or raise an error.
@@ -195,13 +198,14 @@ module Riemann
       # Should the connection fail, append the exception to the errors array and
       # return false.
       #
-      def connect_or_error( addr, deadline, errors )
+      def connect_or_error(addr, deadline, errors)
         timeout = deadline - Time.now.to_f
         raise Timeout, "Could not connect to #{host}:#{port}" if timeout <= 0
-        return connect_nonblock( addr, timeout )
+
+        connect_nonblock(addr, timeout)
       rescue Error => e
         errors << e
-        return false
+        false
       end
 
       # Internal: Connect to the give address within the timeout.
@@ -210,36 +214,47 @@ module Riemann
       #
       # Return the ::Socket when it is connected, or raise an Error if no
       # connection was possible.
-      def connect_nonblock( addr, timeout )
+      def connect_nonblock(addr, timeout)
         sockaddr = ::Socket.pack_sockaddr_in(addr[1], addr[3])
-        sock     = self.socket_factory( addr[4] )
-        sock.connect_nonblock( sockaddr )
-        return sock
+        sock     = socket_factory(addr[4])
+        sock.connect_nonblock(sockaddr)
+        sock
       rescue Errno::EINPROGRESS
         if IO.select(nil, [sock], nil, timeout).nil?
-          sock.close rescue nil
+          begin
+            sock.close
+          rescue StandardError
+            nil
+          end
           raise Timeout, "Could not connect to #{host}:#{port} within #{timeout} seconds"
         end
-        return connect_nonblock_finalize( sock, sockaddr )
-      rescue => ex
-        sock.close rescue nil
-        raise Error, "Could not connect to #{host}:#{port}: #{ex.class}: #{ex.message}", ex.backtrace
+        connect_nonblock_finalize(sock, sockaddr)
+      rescue StandardError => e
+        begin
+          sock.close
+        rescue StandardError
+          nil
+        end
+        raise Error, "Could not connect to #{host}:#{port}: #{e.class}: #{e.message}", e.backtrace
       end
-
 
       # Internal: Make sure that a non-blocking connect has truely connected.
       #
       # Ensure that the given socket is actually connected to the given adddress.
       #
       # Returning the socket if it is and raising an Error if it isn't.
-      def connect_nonblock_finalize( sock, sockaddr )
-        sock.connect_nonblock( sockaddr )
-        return sock
+      def connect_nonblock_finalize(sock, sockaddr)
+        sock.connect_nonblock(sockaddr)
+        sock
       rescue Errno::EISCONN
-        return sock
-      rescue => ex
-        sock.close rescue nil
-        raise Error, "Could not connect to #{host}:#{port}: #{ex.class}: #{ex.message}", ex.backtrace
+        sock
+      rescue StandardError => e
+        begin
+          sock.close
+        rescue StandardError
+          nil
+        end
+        raise Error, "Could not connect to #{host}:#{port}: #{e.class}: #{e.message}", e.backtrace
       end
 
       # Internal: say if we are using TCP Keep Alive or not
@@ -255,12 +270,12 @@ module Riemann
       # Returns true or false
       def using_keepalive?
         using = false
-        if keepalive_active? then
-          using = [ :SOL_SOCKET, :SO_KEEPALIVE, :SOL_TCP, :TCP_KEEPIDLE, :TCP_KEEPINTVL, :TCP_KEEPCNT].all? do |c|
+        if keepalive_active?
+          using = %i[SOL_SOCKET SO_KEEPALIVE SOL_TCP TCP_KEEPIDLE TCP_KEEPINTVL TCP_KEEPCNT].all? do |c|
             ::Socket.const_defined? c
           end
         end
-        return using
+        using
       end
 
       # Reads length bytes from the socket
@@ -285,7 +300,7 @@ module Riemann
           buf << rb
         end
 
-        return buf
+        buf
       end
 
       # Internal: Read up to a maxlen of data from the socket and store it in outbuf
@@ -295,7 +310,7 @@ module Riemann
       #
       # Returns the bytes read
       def readpartial(maxlen, outbuf = nil)
-        return socket.read_nonblock(maxlen, outbuf)
+        socket.read_nonblock(maxlen, outbuf)
       rescue Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::ECONNRESET
         if wait_readable(read_timeout)
           retry
@@ -313,7 +328,7 @@ module Riemann
       #
       # returns nothing
       def write(buf)
-        until buf.nil? or (buf.length == 0) do
+        until buf.nil? || buf.length.zero?
           written = socket.write_nonblock(buf)
           buf = buf[written, buf.length]
         end

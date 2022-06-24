@@ -1,111 +1,110 @@
+# frozen_string_literal: true
+
 require 'riemann'
 
-class Riemann::Client
-  class Error < RuntimeError; end
-  class InvalidResponse < Error; end
-  class ServerError < Error; end
-  class Unsupported < Error; end
-  class TooBig < Unsupported; end
+module Riemann
+  class Client
+    class Error < RuntimeError; end
+    class InvalidResponse < Error; end
+    class ServerError < Error; end
+    class Unsupported < Error; end
+    class TooBig < Unsupported; end
 
-  require 'thread'
-  require 'socket'
-  require 'time'
+    require 'socket'
+    require 'time'
 
-  HOST = '127.0.0.1'
-  PORT = 5555
-  TIMEOUT = 5
+    HOST = '127.0.0.1'
+    PORT = 5555
+    TIMEOUT = 5
 
-  require 'riemann/client/tcp'
-  require 'riemann/client/udp'
+    require 'riemann/client/tcp'
+    require 'riemann/client/udp'
 
-  attr_reader :tcp, :udp
+    attr_reader :tcp, :udp
 
-  def initialize(opts = {})
-    @options = opts.dup
-    @options[:host] ||= HOST
-    @options[:port] ||= PORT
-    @options[:timeout] ||= TIMEOUT
+    def initialize(opts = {})
+      @options = opts.dup
+      @options[:host] ||= HOST
+      @options[:port] ||= PORT
+      @options[:timeout] ||= TIMEOUT
 
-    @udp = UDP.new(@options)
-    @tcp = TCP.new(@options)
-    if block_given?
-      begin
-        yield self
-      ensure
-        close
+      @udp = UDP.new(@options)
+      @tcp = TCP.new(@options)
+      if block_given?
+        begin
+          yield self
+        ensure
+          close
+        end
       end
     end
-  end
 
-  def host
-    @options[:host]
-  end
-
-  def port
-    @options[:port]
-  end
-
-  def timeout
-    @options[:timeout]
-  end
-
-  # Send a state
-  def <<(event_opts)
-    # Create state
-    case event_opts
-    when Riemann::State
-      event = event_opts
-    when Riemann::Event
-      event = event_opts
-    else
-      unless event_opts.include? :host
-        event_opts[:host] = Socket.gethostname
-      end
-      event = Riemann::Event.new(event_opts)
+    def host
+      @options[:host]
     end
 
-    message = Riemann::Message.new :events => [event]
+    def port
+      @options[:port]
+    end
 
-    # Transmit
-    send_maybe_recv message
-  end
+    def timeout
+      @options[:timeout]
+    end
 
-  # Returns an array of states matching query.
-  def [](query)
-    response = query(query)
-    (response.events || []) |
-      (response.states || [])
-  end
+    # Send a state
+    def <<(event_opts)
+      # Create state
+      case event_opts
+      when Riemann::State
+        event = event_opts
+      when Riemann::Event
+        event = event_opts
+      else
+        event_opts[:host] = Socket.gethostname unless event_opts.include? :host
+        event = Riemann::Event.new(event_opts)
+      end
 
-  def connect
-    # NOTE: connections are made automatically on send
-    warn "Riemann client#connect is deprecated"
-  end
+      message = Riemann::Message.new events: [event]
 
-  # Close both UDP and TCP sockets.
-  def close
-    @udp.close
-    @tcp.close
-  end
+      # Transmit
+      send_maybe_recv message
+    end
 
-  def connected?
-    tcp.connected? and udp.connected?
-  end
+    # Returns an array of states matching query.
+    def [](query)
+      response = query(query)
+      (response.events || []) |
+        (response.states || [])
+    end
 
-  # Ask for states
-  def query(string = "true")
-    send_recv Riemann::Message.new(:query => Riemann::Query.new(:string => string))
-  end
+    def connect
+      # NOTE: connections are made automatically on send
+      warn 'Riemann client#connect is deprecated'
+    end
 
-  def send_recv(*a)
-    @tcp.send_recv *a
-  end
+    # Close both UDP and TCP sockets.
+    def close
+      @udp.close
+      @tcp.close
+    end
 
-  def send_maybe_recv(*a)
-    begin
-      @udp.send_maybe_recv *a
+    def connected?
+      tcp.connected? and udp.connected?
+    end
+
+    # Ask for states
+    def query(string = 'true')
+      send_recv Riemann::Message.new(query: Riemann::Query.new(string: string))
+    end
+
+    def send_recv(*a)
+      @tcp.send_recv(*a)
+    end
+
+    def send_maybe_recv(*a)
+      @udp.send_maybe_recv(*a)
     rescue TooBig
-      @tcp.send_maybe_recv *a
+      @tcp.send_maybe_recv(*a)
     end
   end
 end

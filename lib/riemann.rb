@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 module Riemann
-  $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
+  $LOAD_PATH.unshift __dir__
 
   require 'rubygems'
   require 'beefcake'

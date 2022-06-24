@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Riemann
   class AutoState
     # Binds together a state hash and a Client. Any change made here
@@ -40,7 +42,7 @@ module Riemann
     #     @state.state = 'heavy lifting b'
     #     ...
     #   end
-    
+
     def initialize(client = Client.new, state = {})
       @client = client
       @state = state
@@ -95,7 +97,11 @@ module Riemann
     def once(opts)
       o = @state.merge opts
       o[:time] = Time.now.to_i
-      o[:tags] = ((o[:tags] | ["once"]) rescue ["once"])
+      o[:tags] = begin
+        (o[:tags] | ['once'])
+      rescue StandardError
+        ['once']
+      end
       @client << o
     end
 
@@ -111,7 +117,7 @@ module Riemann
     def service=(service)
       @state[:service] = service
       flush
-    end 
+    end
 
     def service
       @state[:service]

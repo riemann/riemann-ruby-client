@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 module Riemann
   class Client
     class UDP < Client
-      MAX_SIZE = 16384
+      MAX_SIZE = 16_384
 
       attr_accessor :host, :port, :max_size
 
@@ -13,6 +15,7 @@ module Riemann
 
       def socket
         return @socket if connected?
+
         @socket = UDPSocket.new
       end
 
@@ -26,17 +29,18 @@ module Riemann
       end
 
       # Read a message from a stream
-      def read_message(s)
+      def read_message(_s)
         raise Unsupported
       end
 
-      def send_recv(*a)
+      def send_recv(*_a)
         raise Unsupported
       end
 
       def send_maybe_recv(message)
         encoded_string = message.encode.to_s
         raise TooBig unless encoded_string.length < @max_size
+
         socket.send(encoded_string, 0, @host, @port)
         nil
       end
