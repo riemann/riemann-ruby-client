@@ -218,7 +218,10 @@ end
 describe 'Riemann::Client (TLS transport)' do
   before do
     @client = Client.new(host: 'localhost', port: 5554, ssl: true,
-                         key_file: '/etc/riemann/riemann_server.pkcs8', cert_file: '/etc/riemann/riemann_server.crt', ca_file: '/etc/riemann/riemann_server.crt', ssl_verify: true)
+                         key_file: '/etc/riemann/riemann_server.pkcs8',
+                         cert_file: '/etc/riemann/riemann_server.crt',
+                         ca_file: '/etc/riemann/riemann_server.crt',
+                         ssl_verify: true)
     @client_with_transport = @client.tcp
     @expected_rate = 100
   end
