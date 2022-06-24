@@ -35,14 +35,14 @@ def wait_for(&block)
   raise 'wait_for condition never realized'
 end
 
-def roundtrip_metric(m)
+def roundtrip_metric(metric)
   @client_with_transport << {
     service: 'metric-test',
-    metric: m
+    metric: metric
   }
 
-  wait_for { @client["service = \"metric-test\" and metric = #{m}"].first }
-    .metric.should.equal m
+  wait_for { @client["service = \"metric-test\" and metric = #{metric}"].first }
+    .metric.should.equal metric
 end
 
 def truthy

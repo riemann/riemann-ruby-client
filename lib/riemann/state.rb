@@ -14,8 +14,8 @@ module Riemann
     optional :ttl, :float, 8
     optional :metric_f, :float, 15
 
-    def initialize(*a)
-      super(*a)
+    def initialize
+      super
 
       @time ||= Time.now.to_i
     end

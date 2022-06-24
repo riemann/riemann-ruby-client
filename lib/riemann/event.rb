@@ -192,35 +192,35 @@ module Riemann
         metric_f
     end
 
-    def metric=(m)
-      if m.is_a?(Integer) && (-(2**63)...2**63).include?(m)
+    def metric=(value)
+      if value.is_a?(Integer) && (-(2**63)...2**63).include?(value)
         # Long
-        self.metric_sint64 = m
+        self.metric_sint64 = value
       else
-        self.metric_d = m.to_f
+        self.metric_d = value.to_f
       end
-      self.metric_f = m.to_f
+      self.metric_f = value.to_f
     end
 
     # Look up attributes
-    def [](k)
-      if RESERVED_FIELDS.include? k.to_sym
+    def [](key)
+      if RESERVED_FIELDS.include? key.to_sym
         super
       else
-        attributes.find { |a| a.key.to_s == k.to_s }.value
+        attributes.find { |a| a.key.to_s == key.to_s }.value
       end
     end
 
     # Set attributes
-    def []=(k, v)
-      if RESERVED_FIELDS.include? k.to_sym
+    def []=(key, value)
+      if RESERVED_FIELDS.include? key.to_sym
         super
       else
-        attr = attributes.find { |a| a.key == k.to_s }
+        attr = attributes.find { |a| a.key == key.to_s }
         if attr
-          attr.value = v.to_s
+          attr.value = value.to_s
         else
-          attributes << Attribute.new(key: k.to_s, value: v.to_s)
+          attributes << Attribute.new(key: key.to_s, value: value.to_s)
         end
       end
     end

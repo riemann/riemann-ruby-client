@@ -19,10 +19,10 @@ module Riemann
     #   sleep rand
     #   m << rand
     # end
-    def initialize(klass, *klass_args, &f)
+    def initialize(klass, *klass_args, &block)
       @klass = klass
       @klass_args = klass_args
-      @f = f
+      @block = block
       @interval = INTERVAL
 
       @metric = new_metric
@@ -30,8 +30,8 @@ module Riemann
       start
     end
 
-    def <<(*a)
-      @metric.<<(*a)
+    def <<(value)
+      @metric.<<(value)
     end
 
     def new_metric
@@ -41,7 +41,7 @@ module Riemann
     def flush
       old = @metric
       @metric = new_metric
-      @f[old]
+      @block[old]
     end
 
     def start

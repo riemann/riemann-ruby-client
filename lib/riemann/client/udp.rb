@@ -29,11 +29,11 @@ module Riemann
       end
 
       # Read a message from a stream
-      def read_message(_s)
+      def read_message(_socket)
         raise Unsupported
       end
 
-      def send_recv(*_a)
+      def send_recv(_message)
         raise Unsupported
       end
 

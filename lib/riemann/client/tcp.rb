@@ -58,14 +58,14 @@ module Riemann
       end
 
       # Read a message from a stream
-      def read_message(s)
-        unless (buffer = s.read(4)) && (buffer.size == 4)
+      def read_message(socket)
+        unless (buffer = socket.read(4)) && (buffer.size == 4)
           raise InvalidResponse, 'unexpected EOF'
         end
 
         length = buffer.unpack1('N')
         begin
-          str = s.read length
+          str = socket.read length
           message = Riemann::Message.decode str
         rescue StandardError
           puts "Message was #{str.inspect}"
@@ -81,9 +81,9 @@ module Riemann
       end
 
       def send_recv(message)
-        with_connection do |s|
-          s.write(message.encode_with_length)
-          read_message(s)
+        with_connection do |socket|
+          socket.write(message.encode_with_length)
+          read_message(socket)
         end
       end
 

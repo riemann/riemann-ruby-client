@@ -97,12 +97,12 @@ module Riemann
       send_recv Riemann::Message.new(query: Riemann::Query.new(string: string))
     end
 
-    def send_recv(*a)
-      @tcp.send_recv(*a)
+    def send_recv(message)
+      @tcp.send_recv(message)
     end
 
-    def send_maybe_recv(*a)
-      @udp.send_maybe_recv(*a)
+    def send_maybe_recv(message)
+      @udp.send_maybe_recv(message)
     rescue TooBig
       @tcp.send_maybe_recv(*a)
     end
