@@ -67,7 +67,7 @@ module Riemann
         begin
           str = s.read length
           message = Riemann::Message.decode str
-        rescue StandardError => e
+        rescue StandardError
           puts "Message was #{str.inspect}"
           raise
         end

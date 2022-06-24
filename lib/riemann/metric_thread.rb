@@ -53,7 +53,7 @@ module Riemann
           sleep @interval
           begin
             flush
-          rescue Exception => e
+          rescue Exception
           end
         end
         @runner = nil

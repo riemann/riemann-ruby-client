@@ -207,7 +207,7 @@ module Riemann
       if RESERVED_FIELDS.include? k.to_sym
         super
       else
-        r = attributes.find { |a| a.key.to_s == k.to_s }.value
+        attributes.find { |a| a.key.to_s == k.to_s }.value
       end
     end
 
