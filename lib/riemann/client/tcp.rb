@@ -7,7 +7,7 @@ require 'riemann/client/ssl_socket'
 module Riemann
   class Client
     class TCP < Client
-      attr_accessor :host, :port, :socket
+      attr_accessor :host, :port
 
       # Public: Set a socket factory -- an object responding
       # to #call(options) that returns a Socket object
