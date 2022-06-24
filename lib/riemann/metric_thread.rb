@@ -54,6 +54,7 @@ module Riemann
           begin
             flush
           rescue StandardError
+            # ignore
           end
         end
         @runner = nil

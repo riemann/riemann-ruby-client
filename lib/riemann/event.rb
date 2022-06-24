@@ -59,7 +59,8 @@ module Riemann
       init.time_micros = begin
         times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
-      rescue StandardError
+      rescue ZeroDivisionError
+        nil
       end
       init.time_micros ||= now
 
@@ -91,7 +92,8 @@ module Riemann
       init.time_micros = begin
         times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
-      rescue StandardError
+      rescue ZeroDivisionError
+        nil
       end
       init.time_micros ||= now
 
@@ -123,7 +125,8 @@ module Riemann
       init.time_micros = begin
         times = states.map(&:time_micros).compact
         (times.inject(:+) / times.size).to_i
-      rescue StandardError
+      rescue ZeroDivisionError
+        nil
       end
       init.time_micros ||= now
 
