@@ -312,11 +312,11 @@ module Riemann
       def readpartial(maxlen, outbuf = nil)
         socket.read_nonblock(maxlen, outbuf)
       rescue Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::ECONNRESET
-        if wait_readable(read_timeout)
-          retry
-        else
+        unless wait_readable(read_timeout)
           raise Timeout, "Could not read from #{host}:#{port} in #{read_timeout} seconds"
         end
+
+        retry
       end
 
       # Internal: Write the given data to the socket
@@ -333,11 +333,11 @@ module Riemann
           buf = buf[written, buf.length]
         end
       rescue Errno::EWOULDBLOCK, Errno::EINTR, Errno::EAGAIN, Errno::ECONNRESET
-        if wait_writable(write_timeout)
-          retry
-        else
+        unless wait_writable(write_timeout)
           raise Timeout, "Could not write to #{host}:#{port} in #{write_timeout} seconds"
         end
+
+        retry
       end
 
       def wait_writable(timeout = nil)

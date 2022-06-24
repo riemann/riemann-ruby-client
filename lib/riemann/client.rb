@@ -30,12 +30,12 @@ module Riemann
 
       @udp = UDP.new(@options)
       @tcp = TCP.new(@options)
-      if block_given?
-        begin
-          yield self
-        ensure
-          close
-        end
+      return unless block_given?
+
+      begin
+        yield self
+      ensure
+        close
       end
     end
 

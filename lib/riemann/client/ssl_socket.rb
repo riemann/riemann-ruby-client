@@ -39,17 +39,17 @@ module Riemann
         begin
           ssl_socket.connect_nonblock
         rescue IO::WaitReadable
-          if IO.select([ssl_socket], nil, nil, timeout)
-            retry
-          else
+          unless IO.select([ssl_socket], nil, nil, timeout)
             raise Timeout, "Could not read from #{host}:#{port} in #{timeout} seconds"
           end
+
+          retry
         rescue IO::WaitWritable
-          if IO.select(nil, [ssl_socket], nil, timeout)
-            retry
-          else
+          unless IO.select(nil, [ssl_socket], nil, timeout)
             raise Timeout, "Could not write to #{host}:#{port} in #{timeout} seconds"
           end
+
+          retry
         end
         ssl_socket
       end
@@ -63,11 +63,11 @@ module Riemann
       def readpartial(maxlen, outbuf = nil)
         super(maxlen, outbuf)
       rescue OpenSSL::SSL::SSLErrorWaitReadable
-        if wait_readable(read_timeout)
-          retry
-        else
+        unless wait_readable(read_timeout)
           raise Timeout, "Could not read from #{host}:#{port} in #{read_timeout} seconds"
         end
+
+        retry
       end
 
       # Internal: Write the given data to the socket
@@ -81,11 +81,11 @@ module Riemann
       def write(buf)
         super(buf)
       rescue OpenSSL::SSL::SSLErrorWaitWritable
-        if wait_writable(write_timeout)
-          retry
-        else
+        unless wait_writable(write_timeout)
           raise Timeout, "Could not write to #{host}:#{port} in #{write_timeout} seconds"
         end
+
+        retry
       end
     end
   end

@@ -59,25 +59,25 @@ module Riemann
 
       # Read a message from a stream
       def read_message(s)
-        if (buffer = s.read(4)) && (buffer.size == 4)
-          length = buffer.unpack1('N')
-          begin
-            str = s.read length
-            message = Riemann::Message.decode str
-          rescue StandardError => e
-            puts "Message was #{str.inspect}"
-            raise
-          end
-
-          unless message.ok
-            puts 'Failed'
-            raise ServerError, message.error
-          end
-
-          message
-        else
+        unless (buffer = s.read(4)) && (buffer.size == 4)
           raise InvalidResponse, 'unexpected EOF'
         end
+
+        length = buffer.unpack1('N')
+        begin
+          str = s.read length
+          message = Riemann::Message.decode str
+        rescue StandardError => e
+          puts "Message was #{str.inspect}"
+          raise
+        end
+
+        unless message.ok
+          puts 'Failed'
+          raise ServerError, message.error
+        end
+
+        message
       end
 
       def send_recv(message)
