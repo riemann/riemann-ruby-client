@@ -1,12 +1,16 @@
-Installing
-==========
+# Riemann Ruby Client
 
-    gem install riemann-client
+[![CI](https://github.com/riemann/riemann-ruby-client/actions/workflows/ci.yml/badge.svg)](https://github.com/riemann/riemann-ruby-client/actions/workflows/ci.yml)
 
-Use
-===
+## Installing
 
-``` ruby
+```shell
+gem install riemann-client
+```
+
+## Use
+
+```ruby
 require 'riemann/client'
 
 # Create a client. Host, port and timeout are optional.
@@ -38,8 +42,8 @@ c['host =~ "%.dc1" and (state = "critical" or state = "warning")']
 
 ```
 
-Transports
-==========
+## Transports
+
 
 Riemann::Client sends small events over UDP by default, and uses TCP for
 queries and large events. UDP sends are essentially "shouting into the void".
@@ -54,8 +58,7 @@ c.tcp["true"]            # => [#<Event ... >, ...]
 c.udp["true"]            # => raise Riemann::Client::Unsupported
 ```
 
-Client state management
-=======================
+## Client state management
 
 Riemann::Client provides some classes to make managing state updates easier.
 
