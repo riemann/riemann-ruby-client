@@ -289,7 +289,7 @@ module Riemann
           outbuf.replace('')
           buf = outbuf
         else
-          buf = ''
+          buf = String.new
         end
 
         while buf.length < length
