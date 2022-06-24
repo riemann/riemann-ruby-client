@@ -102,7 +102,7 @@ module Riemann
           raise if tries > 3
 
           retry
-        rescue Exception
+        rescue StandardError
           close
           raise
         end
