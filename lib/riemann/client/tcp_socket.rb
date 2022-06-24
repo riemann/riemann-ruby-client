@@ -293,7 +293,7 @@ module Riemann
         end
 
         while buf.length < length
-          unless rb = readpartial(length - buf.length)
+          unless (rb = readpartial(length - buf.length))
             break
           end
 
