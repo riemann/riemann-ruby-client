@@ -67,3 +67,9 @@ be used to flush an accumulated value to ustate at regular intervals.
 
 Riemann::AutoState bundles a state and a client together. Any changes to the
 AutoState automatically send the new state to the client.
+
+## License
+
+The MIT License
+
+Copyright (c) 2011-2022 Kyle Kingsbury
