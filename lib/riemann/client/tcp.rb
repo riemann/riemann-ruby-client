@@ -26,7 +26,7 @@ module Riemann
         }
       end
 
-      def initialize(options = {})
+      def initialize(options = {}) # rubocop:disable Lint/MissingSuper
         @options = options
         @locket  = Monitor.new
       end

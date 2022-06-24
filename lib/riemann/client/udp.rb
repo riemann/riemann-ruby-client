@@ -7,7 +7,7 @@ module Riemann
 
       attr_accessor :host, :port, :max_size
 
-      def initialize(opts = {})
+      def initialize(opts = {}) # rubocop:disable Lint/MissingSuper
         @host     = opts[:host] || HOST
         @port     = opts[:port] || PORT
         @max_size = opts[:max_size] || MAX_SIZE
