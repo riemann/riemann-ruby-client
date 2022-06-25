@@ -1,8 +1,16 @@
 # Changelog
 
-## [1.0.0](https://github.com/riemann/riemann-ruby-client/tree/1.0.0) (2022-06-16)
+## [1.0.1](https://github.com/riemann/riemann-ruby-client/tree/1.0.1) (2022-06-25)
 
-[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/0.2.6...1.0.0)
+[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.0.0...1.0.1)
+
+**Merged pull requests:**
+
+- Setup Rubocop and lower required Ruby version [\#37](https://github.com/riemann/riemann-ruby-client/pull/37) ([smortex](https://github.com/smortex))
+
+## [v1.0.0](https://github.com/riemann/riemann-ruby-client/tree/v1.0.0) (2022-06-16)
+
+[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/0.2.6...v1.0.0)
 
 **Implemented enhancements:**
 
