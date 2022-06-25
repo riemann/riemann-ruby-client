@@ -29,6 +29,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rubocop'
   spec.add_development_dependency 'timecop'
 
-  spec.add_dependency 'beefcake', ['>= 1.0.0 ']
   spec.add_dependency 'mtrc', '>= 0.0.4'
+  spec.add_dependency 'protobuf', '~> 3.0'
 end
