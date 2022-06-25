@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require 'protobuf'
-
 module Riemann
-  class State < Protobuf::Message
-    optional :int64, :time, 1
-    optional :string, :state, 2
-    optional :string, :service, 3
-    optional :string, :host, 4
-    optional :string, :description, 5
-    optional :bool, :once, 6
-    repeated :string, :tags, 7
-    optional :float, :ttl, 8
-    optional :float, :metric_f, 15
+  class State
+    include Beefcake::Message
+
+    optional :time, :int64, 1
+    optional :state, :string, 2
+    optional :service, :string, 3
+    optional :host, :string, 4
+    optional :description, :string, 5
+    optional :once, :bool, 6
+    repeated :tags, :string, 7
+    optional :ttl, :float, 8
+    optional :metric_f, :float, 15
 
     def initialize
       super
