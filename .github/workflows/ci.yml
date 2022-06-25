@@ -55,4 +55,4 @@ jobs:
 
           while ! nc -z localhost 5555; do sleep 1; done
       - name: Run the test suite
-        run: bundle exec bacon spec/*.rb
+        run: bundle exec rspec
