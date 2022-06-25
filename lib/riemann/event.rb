@@ -1,30 +1,29 @@
 # frozen_string_literal: true
 
 module Riemann
-  class Event
+  class Event < Protobuf::Message
     require 'set'
-    include Beefcake::Message
 
-    optional :time, :int64, 1
-    optional :state, :string, 2
-    optional :service, :string, 3
-    optional :host, :string, 4
-    optional :description, :string, 5
-    repeated :tags, :string, 7
-    optional :ttl, :float, 8
-    repeated :attributes, Attribute, 9
-    optional :time_micros, :int64, 10
+    optional :int64, :time, 1
+    optional :string, :state, 2
+    optional :string, :service, 3
+    optional :string, :host, 4
+    optional :string, :description, 5
+    repeated :string, :tags, 7
+    optional :float, :ttl, 8
+    repeated Attribute, :attributes, 9
+    optional :int64, :time_micros, 10
 
-    optional :metric_sint64, :sint64, 13
-    optional :metric_d, :double, 14
-    optional :metric_f, :float, 15
+    optional :sint64, :metric_sint64, 13
+    optional :double, :metric_d, 14
+    optional :float, :metric_f, 15
 
     # Fields which don't really exist in protobufs, but which are reserved
     # and can't be used as attributes.
     VIRTUAL_FIELDS = Set.new([:metric])
     # Fields which are specially encoded in the Event protobuf--that is, they
     # can't be used as attributes.
-    RESERVED_FIELDS = fields.map do |_i, field|
+    RESERVED_FIELDS = fields.map do |field|
       field.name.to_sym
     end.reduce(VIRTUAL_FIELDS) do |set, field| # rubocop:disable Style/MultilineBlockChain
       set << field
@@ -190,9 +189,10 @@ module Riemann
     end
 
     def metric
-      metric_d ||
-        metric_sint64 ||
-        metric_f
+      return metric_d if field?(:metric_d)
+      return metric_sint64 if field?(:metric_sint64)
+
+      metric_f
     end
 
     def metric=(value)
