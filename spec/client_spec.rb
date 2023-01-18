@@ -1,9 +1,4 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
-
-# How to run the bacon tests:
-#   1. Start Riemann using the config from riemann.config
-#   2. $ bundle exec bacon spec/client.rb
 
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'riemann'))
 require 'riemann/client'
@@ -186,7 +181,26 @@ RSpec.shared_examples 'a riemann client' do
     rate.should > 100
   end
 
-  it 'be threadsafe' do
+  it 'sends bulk events' do
+    @client_with_transport.bulk_send(
+      [
+        {
+          state: 'ok',
+          service: 'foo'
+        },
+        {
+          state: 'warning',
+          service: 'bar'
+        }
+      ]
+    )
+    wait_for { @client['service = "bar"'].first }.state.should eq 'warning'
+
+    e = @client['service = "foo"'].first
+    e.state.should eq 'ok'
+  end
+
+  it 'is threadsafe' do
     concurrency = 10
     per_thread = 200
     total = concurrency * per_thread
