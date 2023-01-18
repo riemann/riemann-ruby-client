@@ -328,7 +328,7 @@ module Riemann
       #
       # returns nothing
       def write(buf)
-        until buf.nil? || buf.length.zero?
+        until buf.nil? || buf.empty?
           written = socket.write_nonblock(buf)
           buf = buf[written, buf.length]
         end
