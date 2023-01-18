@@ -52,22 +52,42 @@ module Riemann
     end
 
     # Send a state
-    def <<(event_opts)
+    def <<(event)
       # Create state
-      case event_opts
-      when Riemann::State
-        event = event_opts
-      when Riemann::Event
-        event = event_opts
+      case event
+      when Riemann::State, Riemann::Event, Hash
+        # Noop
       else
-        event_opts[:host] = Socket.gethostname unless event_opts.include? :host
-        event = Riemann::Event.new(event_opts)
+        raise(ArgumentError, "Unsupported event class: #{event.class.name}")
       end
 
-      message = Riemann::Message.new events: [event]
+      bulk_send([event])
+    end
 
-      # Transmit
-      send_maybe_recv message
+    def bulk_send(events)
+      raise ArgumentError unless events.is_a?(Array)
+
+      message = Riemann::Message.new(events: normalize_events(events))
+
+      send_maybe_recv(message)
+    end
+
+    def normalize_events(events)
+      events.map do |event|
+        case event
+        when Riemann::State, Riemann::Event
+          event
+        when Hash
+          e = if event.include?(:host)
+                event
+              else
+                event.dup.merge(host: Socket.gethostname)
+              end
+          Riemann::Event.new(e)
+        else
+          raise(ArgumentError, "Unsupported event class: #{event.class.name}")
+        end
+      end
     end
 
     # Returns an array of states matching query.
