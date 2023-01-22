@@ -33,8 +33,8 @@ def roundtrip_metric(metric)
     metric: metric
   }
 
-  wait_for { client["service = \"metric-test\" and metric = #{metric}"].first }
-    .metric.should eq metric
+  e = wait_for { client["service = \"metric-test\" and metric = #{metric}"].first }
+  expect(e.metric).to eq(metric)
 end
 
 RSpec.shared_examples 'a riemann client' do
@@ -43,8 +43,8 @@ RSpec.shared_examples 'a riemann client' do
     Client.new(host: 'localhost', port: 5555) do |c|
       client = c
     end
-    client.should be_a(Client)
-    client.should_not be_connected
+    expect(client).to be_a(Client)
+    expect(client).to_not be_connected
   end
 
   it 'close sockets if given a block that raises' do
@@ -57,15 +57,15 @@ RSpec.shared_examples 'a riemann client' do
     rescue StandardError
       # swallow the exception
     end
-    client.should be_a(Client)
-    client.should_not be_connected
+    expect(client).to be_a(Client)
+    expect(client).to_not be_connected
   end
 
   it 'be connected after sending' do
-    client_with_transport.connected?.should be_falsey
-    client.connected?.should be_falsey
+    expect(client_with_transport.connected?).to be_falsey
+    expect(client.connected?).to be_falsey
     client_with_transport << { state: 'ok', service: 'connected check' }
-    client_with_transport.connected?.should be_truthy
+    expect(client_with_transport.connected?).to be_truthy
     # NOTE: only single transport connected at this point, client.connected? is still false until all transports used
   end
 
@@ -93,11 +93,11 @@ RSpec.shared_examples 'a riemann client' do
     event[:sneak] = 'attack'
     client_with_transport << event
     event2 = wait_for { client['service = "custom"'].first }
-    event2.service.should eq 'custom'
-    event2.state.should eq 'ok'
-    event2[:cats].should eq 'meow'
-    event2[:env].should eq 'prod'
-    event2[:sneak].should eq 'attack'
+    expect(event2.service).to eq('custom')
+    expect(event2.state).to eq('ok')
+    expect(event2[:cats]).to eq('meow')
+    expect(event2[:env]).to eq('prod')
+    expect(event2[:sneak]).to eq('attack')
   end
 
   it 'send a state with a time' do
@@ -110,8 +110,8 @@ RSpec.shared_examples 'a riemann client' do
       }
       wait_for { client.query('service = "test"').events.first.time_micros == t * 1_000_000 }
       e = client.query('service = "test"').events.first
-      e.time.should eq t
-      e.time_micros.should eq t * 1_000_000
+      expect(e.time).to eq(t)
+      expect(e.time_micros).to eq(t * 1_000_000)
     end
   end
 
@@ -125,8 +125,8 @@ RSpec.shared_examples 'a riemann client' do
       }
       wait_for { client.query('service = "test"').events.first.time_micros == t }
       e = client.query('service = "test"').events.first
-      e.time.should eq (Time.now - 10).to_i
-      e.time_micros.should eq t
+      expect(e.time).to eq((Time.now - 10).to_i)
+      expect(e.time_micros).to eq(t)
     end
   end
 
@@ -140,7 +140,7 @@ RSpec.shared_examples 'a riemann client' do
     e = client.query('service = "timeless test"').events.first
     time_after = (Time.now.to_f * 1_000_000).to_i
 
-    [time_before, e.time_micros, time_after].sort.should eq [time_before, e.time_micros, time_after]
+    expect([time_before, e.time_micros, time_after].sort).to eq([time_before, e.time_micros, time_after])
   end
 
   it 'query states' do
@@ -148,16 +148,17 @@ RSpec.shared_examples 'a riemann client' do
     client_with_transport << { state: 'warning', service: '2' }
     client_with_transport << { state: 'critical', service: '3' }
     wait_for { client.query('service = "3"').events.first }
-    client.query.events
-          .map(&:service).to_set.should include %w[1 2 3].to_set
-    client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events
-          .map(&:service).to_set.should eq %w[1 3].to_set
+    expect(client.query.events
+          .map(&:service).to_set).to include(%w[1 2 3].to_set)
+    expect(client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events
+          .map(&:service).to_set).to eq(%w[1 3].to_set)
   end
 
   it '[]' do
-    #    client['state = "critical"'].should eq []
+    #    expect(client['state = "critical"']).to be_empty
     client_with_transport << { state: 'critical' }
-    wait_for { client['state = "critical"'].first }.state.should eq 'critical'
+    e = wait_for { client['state = "critical"'].first }
+    expect(e.state).to eq('critical')
   end
 
   it 'query quickly' do
@@ -170,7 +171,7 @@ RSpec.shared_examples 'a riemann client' do
 
     rate = total / (t2 - t1)
     puts "\n     #{format('%.2f', rate)} queries/sec (#{format('%.2f', (1000 / rate))}ms per query)"
-    rate.should > 100
+    expect(rate).to be > 100
   end
 
   it 'sends bulk events' do
@@ -186,10 +187,11 @@ RSpec.shared_examples 'a riemann client' do
         }
       ]
     )
-    wait_for { client['service = "bar"'].first }.state.should eq 'warning'
+    e = wait_for { client['service = "bar"'].first }
+    expect(e.state).to eq('warning')
 
     e = client['service = "foo"'].first
-    e.state.should eq 'ok'
+    expect(e.state).to eq('ok')
   end
 
   it 'is threadsafe' do
@@ -214,7 +216,7 @@ RSpec.shared_examples 'a riemann client' do
 
     rate = total / (t2 - t1)
     puts "\n     #{format('%.2f', rate)} inserts/sec (#{format('%.2f', (1000 / rate))}ms per insert)"
-    rate.should > expected_rate
+    expect(rate).to be > expected_rate
   end
 end
 
@@ -245,8 +247,9 @@ RSpec.describe 'Riemann::Client' do
         metric_f: 1.0
       }
 
-      res.ok.should be_truthy
-      wait_for { client['service = "test"'].first }.state.should eq 'ok'
+      expect(res.ok).to be_truthy
+      e = wait_for { client['service = "test"'].first }
+      expect(e.state).to eq('ok')
     end
 
     it 'survive inactivity' do
@@ -258,26 +261,26 @@ RSpec.describe 'Riemann::Client' do
 
       sleep INACTIVITY_TIME
 
-      client_with_transport.<<({
-                                 state: 'ok',
-                                 service: 'survive TCP inactivity'
-                               }).ok.should be_truthy
+      expect(client_with_transport.<<({
+                                        state: 'ok',
+                                        service: 'survive TCP inactivity'
+                                      }).ok).to be_truthy
       wait_for { client['service = "survive TCP inactivity"'].first.state == 'ok' }
     end
 
     it 'survive local close' do
-      client_with_transport.<<({
-                                 state: 'warning',
-                                 service: 'survive TCP local close'
-                               }).ok.should be_truthy
+      expect(client_with_transport.<<({
+                                        state: 'warning',
+                                        service: 'survive TCP local close'
+                                      }).ok).to be_truthy
       wait_for { client['service = "survive TCP local close"'].first.state == 'warning' }
 
       client.close
 
-      client_with_transport.<<({
-                                 state: 'ok',
-                                 service: 'survive TCP local close'
-                               }).ok.should be_truthy
+      expect(client_with_transport.<<({
+                                        state: 'ok',
+                                        service: 'survive TCP local close'
+                                      }).ok).to be_truthy
       wait_for { client['service = "survive TCP local close"'].first.state == 'ok' }
     end
   end
@@ -295,8 +298,9 @@ RSpec.describe 'Riemann::Client' do
         metric_f: 1.0
       }
 
-      res.ok.should be_truthy
-      wait_for { client['service = "test"'].first }.state.should eq 'ok'
+      expect(res.ok).to be_truthy
+      e = wait_for { client['service = "test"'].first }
+      expect(e.state).to eq('ok')
     end
 
     it 'survive inactivity' do
@@ -308,26 +312,26 @@ RSpec.describe 'Riemann::Client' do
 
       sleep INACTIVITY_TIME
 
-      client_with_transport.<<({
-                                 state: 'ok',
-                                 service: 'survive TCP inactivity'
-                               }).ok.should be_truthy
+      expect(client_with_transport.<<({
+                                        state: 'ok',
+                                        service: 'survive TCP inactivity'
+                                      }).ok).to be_truthy
       wait_for { client['service = "survive TCP inactivity"'].first.state == 'ok' }
     end
 
     it 'survive local close' do
-      client_with_transport.<<({
-                                 state: 'warning',
-                                 service: 'survive TCP local close'
-                               }).ok.should be_truthy
+      expect(client_with_transport.<<({
+                                        state: 'warning',
+                                        service: 'survive TCP local close'
+                                      }).ok).to be_truthy
       wait_for { client['service = "survive TCP local close"'].first.state == 'warning' }
 
       client.close
 
-      client_with_transport.<<({
-                                 state: 'ok',
-                                 service: 'survive TCP local close'
-                               }).ok.should be_truthy
+      expect(client_with_transport.<<({
+                                        state: 'ok',
+                                        service: 'survive TCP local close'
+                                      }).ok).to be_truthy
       wait_for { client['service = "survive TCP local close"'].first.state == 'ok' }
     end
   end
@@ -346,39 +350,40 @@ RSpec.describe 'Riemann::Client' do
         metric_f: 1.0
       }
 
-      res.should be_nil
-      wait_for { client['service = "test"'].first }.state.should eq 'ok'
+      expect(res).to be_nil
+      e = wait_for { client['service = "test"'].first }
+      expect(e.state).to eq('ok')
     end
 
     it 'survive inactivity' do
-      client_with_transport.<<({
-                                 state: 'warning',
-                                 service: 'survive UDP inactivity'
-                               }).should be_nil
+      expect(client_with_transport.<<({
+                                        state: 'warning',
+                                        service: 'survive UDP inactivity'
+                                      })).to be_nil
       wait_for { client['service = "survive UDP inactivity"'].first.state == 'warning' }
 
       sleep INACTIVITY_TIME
 
-      client_with_transport.<<({
-                                 state: 'ok',
-                                 service: 'survive UDP inactivity'
-                               }).should be_nil
+      expect(client_with_transport.<<({
+                                        state: 'ok',
+                                        service: 'survive UDP inactivity'
+                                      })).to be_nil
       wait_for { client['service = "survive UDP inactivity"'].first.state == 'ok' }
     end
 
     it 'survive local close' do
-      client_with_transport.<<({
-                                 state: 'warning',
-                                 service: 'survive UDP local close'
-                               }).should be_nil
+      expect(client_with_transport.<<({
+                                        state: 'warning',
+                                        service: 'survive UDP local close'
+                                      })).to be_nil
       wait_for { client['service = "survive UDP local close"'].first.state == 'warning' }
 
       client.close
 
-      client_with_transport.<<({
-                                 state: 'ok',
-                                 service: 'survive UDP local close'
-                               }).should be_nil
+      expect(client_with_transport.<<({
+                                        state: 'ok',
+                                        service: 'survive UDP local close'
+                                      })).to be_nil
       wait_for { client['service = "survive UDP local close"'].first.state == 'ok' }
     end
 
