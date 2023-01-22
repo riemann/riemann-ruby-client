@@ -37,14 +37,6 @@ def roundtrip_metric(metric)
     .metric.should eq metric
 end
 
-def truthy
-  ->(obj) { !(obj.nil? || obj == false) }
-end
-
-def falsey
-  ->(obj) { obj.nil? || obj == false }
-end
-
 RSpec.shared_examples 'a riemann client' do
   it 'yield itself to given block' do
     client = nil
