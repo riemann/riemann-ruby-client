@@ -5,8 +5,6 @@ require 'riemann/client'
 require 'set'
 require 'timecop'
 
-include Riemann # rubocop:disable Style/MixinUsage
-
 INACTIVITY_TIME = 5
 
 def wait_for(&block)
@@ -39,25 +37,21 @@ end
 
 RSpec.shared_examples 'a riemann client' do
   it 'yield itself to given block' do
-    client = nil
-    Client.new(host: 'localhost', port: 5555) do |c|
-      client = c
-    end
-    expect(client).to be_a(Client)
+    expect(client).to be_a(Riemann::Client)
     expect(client).to_not be_connected
   end
 
   it 'close sockets if given a block that raises' do
     client = nil
     begin
-      Client.new(host: 'localhost', port: 5555) do |c|
+      Riemann::Client.new(host: 'localhost', port: 5555) do |c|
         client = c
         raise 'The Boom'
       end
     rescue StandardError
       # swallow the exception
     end
-    expect(client).to be_a(Client)
+    expect(client).to be_a(Riemann::Client)
     expect(client).to_not be_connected
   end
 
@@ -84,7 +78,7 @@ RSpec.shared_examples 'a riemann client' do
   end
 
   it 'send custom attributes' do
-    event = Event.new(
+    event = Riemann::Event.new(
       service: 'custom',
       state: 'ok',
       cats: 'meow',
@@ -222,18 +216,18 @@ end
 
 RSpec.describe 'Riemann::Client' do
   let(:client) do
-    Client.new(host: 'localhost', port: 5555)
+    Riemann::Client.new(host: 'localhost', port: 5555)
   end
 
   let(:expected_rate) { 100 }
 
   context('with TLS transport') do
     let(:client) do
-      Client.new(host: 'localhost', port: 5554, ssl: true,
-                 key_file: '/etc/riemann/riemann_server.pkcs8',
-                 cert_file: '/etc/riemann/riemann_server.crt',
-                 ca_file: '/etc/riemann/riemann_server.crt',
-                 ssl_verify: true)
+      Riemann::Client.new(host: 'localhost', port: 5554, ssl: true,
+                          key_file: '/etc/riemann/riemann_server.pkcs8',
+                          cert_file: '/etc/riemann/riemann_server.crt',
+                          ca_file: '/etc/riemann/riemann_server.crt',
+                          ssl_verify: true)
     end
     let(:client_with_transport) { client.tcp }
 
