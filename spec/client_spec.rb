@@ -214,6 +214,105 @@ RSpec.shared_examples 'a riemann client' do
   end
 end
 
+RSpec.shared_examples 'a riemann client that acknowledge messages' do
+  it 'send a state' do
+    res = client_with_transport << {
+      state: 'ok',
+      service: 'test',
+      description: 'desc',
+      metric_f: 1.0
+    }
+
+    expect(res.ok).to be_truthy
+    e = wait_for { client['service = "test"'].first }
+    expect(e.state).to eq('ok')
+  end
+
+  it 'survive inactivity' do
+    client_with_transport.<<({
+                               state: 'warning',
+                               service: 'survive TCP inactivity'
+                             })
+    wait_for { client['service = "survive TCP inactivity"'].first.state == 'warning' }
+
+    sleep INACTIVITY_TIME
+
+    expect(client_with_transport.<<({
+                                      state: 'ok',
+                                      service: 'survive TCP inactivity'
+                                    }).ok).to be_truthy
+    wait_for { client['service = "survive TCP inactivity"'].first.state == 'ok' }
+  end
+
+  it 'survive local close' do
+    expect(client_with_transport.<<({
+                                      state: 'warning',
+                                      service: 'survive TCP local close'
+                                    }).ok).to be_truthy
+    wait_for { client['service = "survive TCP local close"'].first.state == 'warning' }
+
+    client.close
+
+    expect(client_with_transport.<<({
+                                      state: 'ok',
+                                      service: 'survive TCP local close'
+                                    }).ok).to be_truthy
+    wait_for { client['service = "survive TCP local close"'].first.state == 'ok' }
+  end
+end
+
+RSpec.shared_examples 'a riemann client that does not acknowledge messages' do
+  it 'send a state' do
+    res = client_with_transport << {
+      state: 'ok',
+      service: 'test',
+      description: 'desc',
+      metric_f: 1.0
+    }
+
+    expect(res).to be_nil
+    e = wait_for { client['service = "test"'].first }
+    expect(e.state).to eq('ok')
+  end
+
+  it 'survive inactivity' do
+    expect(client_with_transport.<<({
+                                      state: 'warning',
+                                      service: 'survive UDP inactivity'
+                                    })).to be_nil
+    wait_for { client['service = "survive UDP inactivity"'].first.state == 'warning' }
+
+    sleep INACTIVITY_TIME
+
+    expect(client_with_transport.<<({
+                                      state: 'ok',
+                                      service: 'survive UDP inactivity'
+                                    })).to be_nil
+    wait_for { client['service = "survive UDP inactivity"'].first.state == 'ok' }
+  end
+
+  it 'survive local close' do
+    expect(client_with_transport.<<({
+                                      state: 'warning',
+                                      service: 'survive UDP local close'
+                                    })).to be_nil
+    wait_for { client['service = "survive UDP local close"'].first.state == 'warning' }
+
+    client.close
+
+    expect(client_with_transport.<<({
+                                      state: 'ok',
+                                      service: 'survive UDP local close'
+                                    })).to be_nil
+    wait_for { client['service = "survive UDP local close"'].first.state == 'ok' }
+  end
+
+  it 'raise Riemann::Client::Unsupported exception on query' do
+    expect { client_with_transport['service = "test"'] }.to raise_error(Riemann::Client::Unsupported)
+    expect { client_with_transport.query('service = "test"') }.to raise_error(Riemann::Client::Unsupported)
+  end
+end
+
 RSpec.describe 'Riemann::Client' do
   let(:client) do
     Riemann::Client.new(host: 'localhost', port: 5555)
@@ -232,102 +331,14 @@ RSpec.describe 'Riemann::Client' do
     let(:client_with_transport) { client.tcp }
 
     it_behaves_like 'a riemann client'
-
-    it 'send a state' do
-      res = client_with_transport << {
-        state: 'ok',
-        service: 'test',
-        description: 'desc',
-        metric_f: 1.0
-      }
-
-      expect(res.ok).to be_truthy
-      e = wait_for { client['service = "test"'].first }
-      expect(e.state).to eq('ok')
-    end
-
-    it 'survive inactivity' do
-      client_with_transport.<<({
-                                 state: 'warning',
-                                 service: 'survive TCP inactivity'
-                               })
-      wait_for { client['service = "survive TCP inactivity"'].first.state == 'warning' }
-
-      sleep INACTIVITY_TIME
-
-      expect(client_with_transport.<<({
-                                        state: 'ok',
-                                        service: 'survive TCP inactivity'
-                                      }).ok).to be_truthy
-      wait_for { client['service = "survive TCP inactivity"'].first.state == 'ok' }
-    end
-
-    it 'survive local close' do
-      expect(client_with_transport.<<({
-                                        state: 'warning',
-                                        service: 'survive TCP local close'
-                                      }).ok).to be_truthy
-      wait_for { client['service = "survive TCP local close"'].first.state == 'warning' }
-
-      client.close
-
-      expect(client_with_transport.<<({
-                                        state: 'ok',
-                                        service: 'survive TCP local close'
-                                      }).ok).to be_truthy
-      wait_for { client['service = "survive TCP local close"'].first.state == 'ok' }
-    end
+    it_behaves_like 'a riemann client that acknowledge messages'
   end
 
   context 'with TCP transport' do
     let(:client_with_transport) { client.tcp }
 
     it_behaves_like 'a riemann client'
-
-    it 'send a state' do
-      res = client_with_transport << {
-        state: 'ok',
-        service: 'test',
-        description: 'desc',
-        metric_f: 1.0
-      }
-
-      expect(res.ok).to be_truthy
-      e = wait_for { client['service = "test"'].first }
-      expect(e.state).to eq('ok')
-    end
-
-    it 'survive inactivity' do
-      client_with_transport.<<({
-                                 state: 'warning',
-                                 service: 'survive TCP inactivity'
-                               })
-      wait_for { client['service = "survive TCP inactivity"'].first.state == 'warning' }
-
-      sleep INACTIVITY_TIME
-
-      expect(client_with_transport.<<({
-                                        state: 'ok',
-                                        service: 'survive TCP inactivity'
-                                      }).ok).to be_truthy
-      wait_for { client['service = "survive TCP inactivity"'].first.state == 'ok' }
-    end
-
-    it 'survive local close' do
-      expect(client_with_transport.<<({
-                                        state: 'warning',
-                                        service: 'survive TCP local close'
-                                      }).ok).to be_truthy
-      wait_for { client['service = "survive TCP local close"'].first.state == 'warning' }
-
-      client.close
-
-      expect(client_with_transport.<<({
-                                        state: 'ok',
-                                        service: 'survive TCP local close'
-                                      }).ok).to be_truthy
-      wait_for { client['service = "survive TCP local close"'].first.state == 'ok' }
-    end
+    it_behaves_like 'a riemann client that acknowledge messages'
   end
 
   context('with UDP transport') do
@@ -335,55 +346,6 @@ RSpec.describe 'Riemann::Client' do
     let(:expected_rate) { 1000 }
 
     it_behaves_like 'a riemann client'
-
-    it 'send a state' do
-      res = client_with_transport << {
-        state: 'ok',
-        service: 'test',
-        description: 'desc',
-        metric_f: 1.0
-      }
-
-      expect(res).to be_nil
-      e = wait_for { client['service = "test"'].first }
-      expect(e.state).to eq('ok')
-    end
-
-    it 'survive inactivity' do
-      expect(client_with_transport.<<({
-                                        state: 'warning',
-                                        service: 'survive UDP inactivity'
-                                      })).to be_nil
-      wait_for { client['service = "survive UDP inactivity"'].first.state == 'warning' }
-
-      sleep INACTIVITY_TIME
-
-      expect(client_with_transport.<<({
-                                        state: 'ok',
-                                        service: 'survive UDP inactivity'
-                                      })).to be_nil
-      wait_for { client['service = "survive UDP inactivity"'].first.state == 'ok' }
-    end
-
-    it 'survive local close' do
-      expect(client_with_transport.<<({
-                                        state: 'warning',
-                                        service: 'survive UDP local close'
-                                      })).to be_nil
-      wait_for { client['service = "survive UDP local close"'].first.state == 'warning' }
-
-      client.close
-
-      expect(client_with_transport.<<({
-                                        state: 'ok',
-                                        service: 'survive UDP local close'
-                                      })).to be_nil
-      wait_for { client['service = "survive UDP local close"'].first.state == 'ok' }
-    end
-
-    it 'raise Riemann::Client::Unsupported exception on query' do
-      expect { client_with_transport['service = "test"'] }.to raise_error(Riemann::Client::Unsupported)
-      expect { client_with_transport.query('service = "test"') }.to raise_error(Riemann::Client::Unsupported)
-    end
+    it_behaves_like 'a riemann client that does not acknowledge messages'
   end
 end
