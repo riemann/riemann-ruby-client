@@ -124,7 +124,7 @@ module Riemann
     def send_maybe_recv(message)
       @udp.send_maybe_recv(message)
     rescue TooBig
-      @tcp.send_maybe_recv(*a)
+      @tcp.send_maybe_recv(message)
     end
   end
 end
