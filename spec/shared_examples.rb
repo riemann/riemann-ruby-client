@@ -64,31 +64,53 @@ def roundtrip_metric(metric)
 end
 
 RSpec.shared_examples 'a riemann client' do
-  it 'yield itself to given block' do
-    expect(client).to be_a(Riemann::Client)
+  it 'is not connected before sending' do
     expect(client).not_to be_connected
   end
 
-  it 'close sockets if given a block that raises' do
-    client = nil
-    begin
-      Riemann::Client.new(host: 'localhost', port: 5555) do |c|
-        client = c
-        raise 'The Boom'
+  context 'when given a block that raises' do
+    let(:client) do
+      res = nil
+      begin
+        Riemann::Client.new(host: 'localhost', port: 5555) do |c|
+          res = c
+          raise 'The Boom'
+        end
+      rescue StandardError
+        # swallow the exception
       end
-    rescue StandardError
-      # swallow the exception
+      res
     end
-    expect(client).to be_a(Riemann::Client)
-    expect(client).not_to be_connected
+
+    it 'in not connected' do
+      expect(client).not_to be_connected
+    end
   end
 
-  it 'be connected after sending' do
-    expect(client_with_transport).not_to be_connected
-    expect(client).not_to be_connected
+  it 'is connected after sending' do
     client_with_transport << { state: 'ok', service: 'connected check' }
     expect(client_with_transport).to be_connected
     # NOTE: only single transport connected at this point, client.connected? is still false until all transports used
+  end
+
+  describe '#<<' do
+    subject { wait_for_message_with_id(message_id) }
+
+    let(:message_id) { next_message_id }
+
+    before do
+      client_with_transport << {
+        state: 'ok',
+        service: 'test',
+        description: 'desc',
+        metric_f: 1.0,
+        message_id: message_id
+      }
+    end
+
+    it 'finds the send message' do
+      expect(subject.state).to eq('ok')
+    end
   end
 
   it 'send longs' do
@@ -105,88 +127,164 @@ RSpec.shared_examples 'a riemann client' do
     roundtrip_metric 1.2300000190734863
   end
 
-  it 'send custom attributes' do
-    message_id = next_message_id
+  context 'when sending custom attributes' do
+    subject { wait_for_message_with_id(message_id) }
 
-    event = Riemann::Event.new(
-      service: 'custom',
-      state: 'ok',
-      cats: 'meow',
-      env: 'prod',
-      message_id: message_id
-    )
-    event[:sneak] = 'attack'
-    client_with_transport << event
-    event2 = wait_for_message_with_id(message_id)
-    expect(event2.service).to eq('custom')
-    expect(event2.state).to eq('ok')
-    expect(event2[:cats]).to eq('meow')
-    expect(event2[:env]).to eq('prod')
-    expect(event2[:sneak]).to eq('attack')
+    before do
+      event = Riemann::Event.new(
+        service: 'custom',
+        state: 'ok',
+        cats: 'meow',
+        env: 'prod',
+        message_id: message_id
+      )
+      event[:sneak] = 'attack'
+      client_with_transport << event
+    end
+
+    let(:message_id) { next_message_id }
+
+    it 'has the expected service' do
+      expect(subject.service).to eq('custom')
+    end
+
+    it 'has the expected state' do
+      expect(subject.state).to eq('ok')
+    end
+
+    it 'has the expected cats' do
+      expect(subject[:cats]).to eq('meow')
+    end
+
+    it 'has the expected env' do
+      expect(subject[:env]).to eq('prod')
+    end
+
+    it 'has the expected sneak' do
+      expect(subject[:sneak]).to eq('attack')
+    end
   end
 
-  it 'send a state with a time' do
-    Timecop.freeze do
-      message_id = next_message_id
+  context 'when passing time' do
+    subject { wait_for_message_with_id(message_id) }
 
-      t = (Time.now - 10).to_i
+    before do
+      Timecop.freeze
       client_with_transport << {
         state: 'ok',
         service: 'test',
         time: t,
         message_id: message_id
       }
-      e = wait_for_message_with_id(message_id)
-      expect(e.time).to eq(t)
-      expect(e.time_micros).to eq(t * 1_000_000)
+    end
+
+    after do
+      Timecop.return
+    end
+
+    let(:message_id) { next_message_id }
+    let(:t) { (Time.now - 10).to_i }
+
+    it 'has the expected time' do
+      expect(subject.time).to eq(t)
+    end
+
+    it 'has the expected time_micros' do
+      expect(subject.time_micros).to eq(t * 1_000_000)
     end
   end
 
-  it 'send a state with a time_micros' do
-    Timecop.freeze do
-      message_id = next_message_id
+  context 'when passing time_micros' do
+    subject { wait_for_message_with_id(message_id) }
 
-      t = ((Time.now - 10).to_f * 1_000_000).to_i
+    before do
+      Timecop.freeze
       client_with_transport << {
         state: 'ok',
         service: 'test',
         time_micros: t,
         message_id: message_id
       }
-      e = wait_for_message_with_id(message_id)
-      expect(e.time).to eq((Time.now - 10).to_i)
-      expect(e.time_micros).to eq(t)
+    end
+
+    after do
+      Timecop.return
+    end
+
+    let(:message_id) { next_message_id }
+    let(:t) { ((Time.now - 10).to_f * 1_000_000).to_i }
+
+    it 'has the expected time' do
+      expect(subject.time).to eq((Time.now - 10).to_i)
+    end
+
+    it 'has the expected time_micros' do
+      expect(subject.time_micros).to eq(t)
     end
   end
 
-  it 'send a state without time nor time_micros' do
-    message_id = next_message_id
+  context 'when passing no time nor time_micros' do
+    let(:message_id) { next_message_id }
 
-    time_before = (Time.now.to_f * 1_000_000).to_i
-    client_with_transport << {
-      state: 'ok',
-      service: 'timeless test',
-      message_id: message_id
-    }
-    e = wait_for_message_with_id(message_id)
-    time_after = (Time.now.to_f * 1_000_000).to_i
+    let(:time_before) { (Time.now.to_f * 1_000_000).to_i }
+    let(:event) do
+      client_with_transport << {
+        state: 'ok',
+        service: 'timeless test',
+        message_id: message_id
+      }
+    end
+    let(:time_after) { (Time.now.to_f * 1_000_000).to_i }
 
-    expect([time_before, e.time_micros, time_after].sort).to eq([time_before, e.time_micros, time_after])
+    it 'has the expected time_micros' do
+      time_before
+      event
+      time_after
+
+      e = wait_for_message_with_id(message_id)
+
+      expect([time_before, e.time_micros, time_after].sort).to eq([time_before, e.time_micros, time_after])
+    end
   end
 
-  it 'query states' do
-    message_id1 = next_message_id
-    message_id2 = next_message_id
-    message_id3 = next_message_id
+  describe '#query' do
+    before do
+      message_id1 = next_message_id
+      message_id2 = next_message_id
+      message_id3 = next_message_id
 
-    client_with_transport << { state: 'critical', service: '1', message_id: message_id1 }
-    client_with_transport << { state: 'warning', service: '2', message_id: message_id2 }
-    client_with_transport << { state: 'critical', service: '3', message_id: message_id3 }
-    wait_for_message_with_id(message_id3)
-    expect(client.query.events
-          .map(&:service).to_set).to include(%w[1 2 3].to_set)
-    expect(client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events
-          .map(&:service).to_set).to eq(%w[1 3].to_set)
+      client_with_transport << { state: 'critical', service: '1', message_id: message_id1 }
+      client_with_transport << { state: 'warning', service: '2', message_id: message_id2 }
+      client_with_transport << { state: 'critical', service: '3', message_id: message_id3 }
+
+      wait_for_message_with_id(message_id3)
+    end
+
+    let(:rate) do
+      t1 = Time.now
+      total = 1000
+      total.times do |_i|
+        client.query('state = "critical"')
+      end
+      t2 = Time.now
+
+      total / (t2 - t1)
+    end
+
+    it 'returns all events without parameters' do
+      expect(client.query.events
+            .map(&:service).to_set).to include(%w[1 2 3].to_set)
+    end
+
+    it 'returns matched events with parameters' do
+      expect(client.query('state = "critical" and (service = "1" or service = "2" or service = "3")').events
+            .map(&:service).to_set).to eq(%w[1 3].to_set)
+    end
+
+    it 'query quickly' do
+      puts "\n     #{format('%.2f', rate)} queries/sec (#{format('%.2f', (1000 / rate))}ms per query)"
+      expect(rate).to be > 100
+    end
   end
 
   it '[]' do
@@ -198,198 +296,236 @@ RSpec.shared_examples 'a riemann client' do
     expect(e.state).to eq('critical')
   end
 
-  it 'query quickly' do
-    t1 = Time.now
-    total = 1000
-    total.times do |_i|
-      client.query('state = "critical"')
+  describe '#bulk_send' do
+    let(:message_id1) { next_message_id }
+    let(:message_id2) { next_message_id }
+    let(:event1) { wait_for_message_with_id(message_id1) }
+    let(:event2) { wait_for_message_with_id(message_id2) }
+
+    before do
+      client_with_transport.bulk_send(
+        [
+          {
+            state: 'ok',
+            service: 'foo',
+            message_id: message_id1
+          },
+          {
+            state: 'warning',
+            service: 'bar',
+            message_id: message_id2
+          }
+        ]
+      )
     end
-    t2 = Time.now
 
-    rate = total / (t2 - t1)
-    puts "\n     #{format('%.2f', rate)} queries/sec (#{format('%.2f', (1000 / rate))}ms per query)"
-    expect(rate).to be > 100
+    it 'has send the first event' do
+      expect(event2.state).to eq('warning')
+    end
+
+    it 'has send the second event' do
+      expect(event1.state).to eq('ok')
+    end
   end
 
-  it 'sends bulk events' do
-    message_id1 = next_message_id
-    message_id2 = next_message_id
+  context 'when using multiple threads' do
+    let!(:rate) do
+      concurrency = 10
+      per_thread = 200
+      total = concurrency * per_thread
 
-    client_with_transport.bulk_send(
-      [
-        {
-          state: 'ok',
-          service: 'foo',
-          message_id: message_id1
-        },
-        {
-          state: 'warning',
-          service: 'bar',
-          message_id: message_id2
-        }
-      ]
-    )
-    wait_for_message_with_id(message_id2)
-
-    e = client['service = "bar"'].first
-    expect(e.state).to eq('warning')
-
-    e = client['service = "foo"'].first
-    expect(e.state).to eq('ok')
-  end
-
-  it 'is threadsafe' do
-    concurrency = 10
-    per_thread = 200
-    total = concurrency * per_thread
-
-    t1 = Time.now
-    (0...concurrency).map do |_i|
-      Thread.new do
-        per_thread.times do
-          client_with_transport.<<({
-                                     state: 'ok',
-                                     service: 'test',
-                                     description: 'desc',
-                                     metric_f: 1.0,
-                                     message_id: next_message_id
-                                   })
+      t1 = Time.now
+      concurrency.times.map do
+        Thread.new do
+          per_thread.times do
+            client_with_transport << {
+              state: 'ok',
+              service: 'test',
+              description: 'desc',
+              metric_f: 1.0,
+              message_id: next_message_id
+            }
+          end
         end
-      end
-    end.each(&:join)
-    t2 = Time.now
+      end.each(&:join)
+      t2 = Time.now
 
-    rate = total / (t2 - t1)
-    puts "\n     #{format('%.2f', rate)} inserts/sec (#{format('%.2f', (1000 / rate))}ms per insert)"
-    expect(rate).to be > expected_rate
+      total / (t2 - t1)
+    end
+
+    it 'is threadsafe' do
+      puts "\n     #{format('%.2f', rate)} inserts/sec (#{format('%.2f', (1000 / rate))}ms per insert)"
+      expect(rate).to be > expected_rate
+    end
   end
 end
 
 RSpec.shared_examples 'a riemann client that acknowledge messages' do
-  it 'send a state' do
-    message_id = next_message_id
+  describe '#<<' do
+    subject do
+      client_with_transport << {
+        state: 'ok',
+        service: 'test',
+        description: 'desc',
+        metric_f: 1.0
+      }
+    end
 
-    res = client_with_transport << {
-      state: 'ok',
-      service: 'test',
-      description: 'desc',
-      metric_f: 1.0,
-      message_id: message_id
-    }
-
-    expect(res.ok).to be_truthy
-    e = wait_for_message_with_id(message_id)
-    expect(e.state).to eq('ok')
+    it 'acknowledge the message' do
+      expect(subject.ok).to be_truthy
+    end
   end
 
-  it 'survive inactivity' do
-    message_id = next_message_id
+  context 'when inactive' do
+    let(:message_id1) { next_message_id }
+    let(:message1) do
+      {
+        state: 'warning',
+        service: 'survive TCP inactivity',
+        message_id: message_id1
+      }
+    end
 
-    client_with_transport.<<({
-                               state: 'warning',
-                               service: 'survive TCP inactivity',
-                               message_id: message_id
-                             })
-    wait_for_message_with_id(message_id)
+    let(:message_id2) { next_message_id }
+    let(:message2) do
+      {
+        state: 'ok',
+        service: 'survive TCP inactivity',
+        message_id: message_id2
+      }
+    end
 
-    sleep INACTIVITY_TIME
+    before do
+      client_with_transport << message1
+      wait_for_message_with_id(message_id1)
+    end
 
-    message_id = next_message_id
+    it 'survive inactivity' do
+      sleep INACTIVITY_TIME
 
-    expect(client_with_transport.<<({
-                                      state: 'ok',
-                                      service: 'survive TCP inactivity',
-                                      message_id: message_id
-                                    }).ok).to be_truthy
-    wait_for_message_with_id(message_id)
+      expect((client_with_transport << message2).ok).to be_truthy
+      wait_for_message_with_id(message_id2)
+    end
   end
 
-  it 'survive local close' do
-    message_id = next_message_id
+  context 'when the connection is closed' do
+    let(:message_id1) { next_message_id }
+    let(:message1) do
+      {
+        state: 'warning',
+        service: 'survive TCP local close',
+        message_id: message_id1
+      }
+    end
 
-    expect(client_with_transport.<<({
-                                      state: 'warning',
-                                      service: 'survive TCP local close',
-                                      message_id: message_id
-                                    }).ok).to be_truthy
-    wait_for_message_with_id(message_id)
+    let(:message_id2) { next_message_id }
+    let(:message2) do
+      {
+        state: 'ok',
+        service: 'survive TCP local close',
+        message_id: message_id2
+      }
+    end
 
-    client.close
+    before do
+      client_with_transport << message1
+      wait_for_message_with_id(message_id1)
+    end
 
-    message_id = next_message_id
+    it 'survive local close' do
+      client.close
 
-    expect(client_with_transport.<<({
-                                      state: 'ok',
-                                      service: 'survive TCP local close',
-                                      message_id: message_id
-                                    }).ok).to be_truthy
-    wait_for_message_with_id(message_id)
+      expect((client_with_transport << message2).ok).to be_truthy
+      wait_for_message_with_id(message_id2)
+    end
   end
 end
 
 RSpec.shared_examples 'a riemann client that does not acknowledge messages' do
-  it 'send a state' do
-    message_id = next_message_id
+  describe '#<<' do
+    subject do
+      client_with_transport << {
+        state: 'ok',
+        service: 'test',
+        description: 'desc',
+        metric_f: 1.0
+      }
+    end
 
-    res = client_with_transport << {
-      state: 'ok',
-      service: 'test',
-      description: 'desc',
-      metric_f: 1.0,
-      message_id: message_id
-    }
-
-    expect(res).to be_nil
-    e = wait_for_message_with_id(message_id)
-    expect(e.state).to eq('ok')
+    it 'does not acknowledge the message' do
+      expect(subject).to be_nil
+    end
   end
 
-  it 'survive inactivity' do
-    message_id = next_message_id
+  context 'when inactive' do
+    let(:message_id1) { next_message_id }
+    let(:message1) do
+      {
+        state: 'warning',
+        service: 'survive UDP inactivity',
+        message_id: message_id1
+      }
+    end
 
-    expect(client_with_transport.<<({
-                                      state: 'warning',
-                                      service: 'survive UDP inactivity',
-                                      message_id: message_id
-                                    })).to be_nil
-    wait_for_message_with_id(message_id)
+    let(:message_id2) { next_message_id }
+    let(:message2) do
+      {
+        state: 'ok',
+        service: 'survive UDP inactivity',
+        message_id: message_id2
+      }
+    end
 
-    sleep INACTIVITY_TIME
+    before do
+      client_with_transport << message1
+      wait_for_message_with_id(message_id1)
+    end
 
-    message_id = next_message_id
+    it 'survive inactivity' do
+      sleep INACTIVITY_TIME
 
-    expect(client_with_transport.<<({
-                                      state: 'ok',
-                                      service: 'survive UDP inactivity',
-                                      message_id: message_id
-                                    })).to be_nil
-    wait_for_message_with_id(message_id)
+      client_with_transport << message2
+      wait_for_message_with_id(message_id2)
+    end
   end
 
-  it 'survive local close' do
-    message_id = next_message_id
+  context 'when the connection is closed' do
+    let(:message_id1) { next_message_id }
+    let(:message1) do
+      {
+        state: 'warning',
+        service: 'survive UDP local close',
+        message_id: message_id1
+      }
+    end
 
-    expect(client_with_transport.<<({
-                                      state: 'warning',
-                                      service: 'survive UDP local close',
-                                      message_id: message_id
-                                    })).to be_nil
-    wait_for_message_with_id(message_id)
+    let(:message_id2) { next_message_id }
+    let(:message2) do
+      {
+        state: 'ok',
+        service: 'survive UDP local close',
+        message_id: message_id2
+      }
+    end
 
-    client.close
+    before do
+      client_with_transport << message1
+      wait_for_message_with_id(message_id1)
+    end
 
-    message_id = next_message_id
+    it 'survive local close' do
+      client.close
 
-    expect(client_with_transport.<<({
-                                      state: 'ok',
-                                      service: 'survive UDP local close',
-                                      message_id: message_id
-                                    })).to be_nil
-    wait_for_message_with_id(message_id)
+      client_with_transport << message2
+      wait_for_message_with_id(message_id2)
+    end
   end
 
-  it 'raise Riemann::Client::Unsupported exception on query' do
+  it 'raise Riemann::Client::Unsupported exception on #[]' do
     expect { client_with_transport['service = "test"'] }.to raise_error(Riemann::Client::Unsupported)
+  end
+
+  it 'raise Riemann::Client::Unsupported exception on #query' do
     expect { client_with_transport.query('service = "test"') }.to raise_error(Riemann::Client::Unsupported)
   end
 end
