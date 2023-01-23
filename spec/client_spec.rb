@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib', 'riemann'))
+require 'riemann'
 require 'riemann/client'
 require 'set'
 require 'timecop'
@@ -38,7 +38,7 @@ end
 RSpec.shared_examples 'a riemann client' do
   it 'yield itself to given block' do
     expect(client).to be_a(Riemann::Client)
-    expect(client).to_not be_connected
+    expect(client).not_to be_connected
   end
 
   it 'close sockets if given a block that raises' do
@@ -52,14 +52,14 @@ RSpec.shared_examples 'a riemann client' do
       # swallow the exception
     end
     expect(client).to be_a(Riemann::Client)
-    expect(client).to_not be_connected
+    expect(client).not_to be_connected
   end
 
   it 'be connected after sending' do
-    expect(client_with_transport.connected?).to be_falsey
-    expect(client.connected?).to be_falsey
+    expect(client_with_transport).not_to be_connected
+    expect(client).not_to be_connected
     client_with_transport << { state: 'ok', service: 'connected check' }
-    expect(client_with_transport.connected?).to be_truthy
+    expect(client_with_transport).to be_connected
     # NOTE: only single transport connected at this point, client.connected? is still false until all transports used
   end
 
