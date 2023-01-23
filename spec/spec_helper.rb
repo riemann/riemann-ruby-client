@@ -21,4 +21,18 @@ RSpec.configure do |config|
   # test failures related to randomization by passing the same `--seed` value
   # as the one that triggered the failure.
   Kernel.srand config.seed
+
+  # RSpec tries to be friendly to us by detecting deadlocks but this breaks CI
+  # :-(
+  #
+  # Some tests want to start multiple thread in a let block, and this
+  # thread-safety mechanism makes it impossible and raise an exception while
+  # our code is working correctly.
+  #
+  # This issue seems the same as:
+  # https://github.com/rspec/rspec-core/issues/2064
+  #
+  # The feature we disable was introduced in:
+  # https://github.com/rspec/rspec-core/commit/ffe00a1d4e369e312881e6b2c091c8b6fb7e6087
+  config.threadsafe = false
 end
