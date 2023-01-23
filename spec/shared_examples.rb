@@ -136,8 +136,7 @@ RSpec.shared_examples 'a riemann client' do
         time: t,
         message_id: message_id
       }
-      wait_for_message_with_id(message_id)
-      e = client.query('service = "test"').events.first
+      e = wait_for_message_with_id(message_id)
       expect(e.time).to eq(t)
       expect(e.time_micros).to eq(t * 1_000_000)
     end
@@ -154,8 +153,7 @@ RSpec.shared_examples 'a riemann client' do
         time_micros: t,
         message_id: message_id
       }
-      wait_for_message_with_id(message_id)
-      e = client.query('service = "test"').events.first
+      e = wait_for_message_with_id(message_id)
       expect(e.time).to eq((Time.now - 10).to_i)
       expect(e.time_micros).to eq(t)
     end
