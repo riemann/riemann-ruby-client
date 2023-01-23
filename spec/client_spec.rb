@@ -40,5 +40,27 @@ RSpec.describe 'Riemann::Client' do
 
     it_behaves_like 'a riemann client'
     it_behaves_like 'a riemann client that does not acknowledge messages'
+
+    context 'when sending a message too large for UDP transport' do
+      let(:large_message) do
+        {
+          data: 'X' * (Riemann::Client::UDP::MAX_SIZE + 10)
+        }
+      end
+
+      before do
+        allow(client.udp).to receive(:send_maybe_recv).and_call_original
+        allow(client.tcp).to receive(:send_maybe_recv).and_call_original
+        client << large_message
+      end
+
+      it 'has tried to send the message using UDP' do
+        expect(client.udp).to have_received(:send_maybe_recv)
+      end
+
+      it 'has retried to send the message using TCP' do
+        expect(client.tcp).to have_received(:send_maybe_recv)
+      end
+    end
   end
 end
