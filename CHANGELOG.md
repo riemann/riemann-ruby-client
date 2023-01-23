@@ -1,8 +1,26 @@
 # Changelog
 
-## [1.0.1](https://github.com/riemann/riemann-ruby-client/tree/1.0.1) (2022-06-25)
+## [v1.1.0](https://github.com/riemann/riemann-ruby-client/tree/v1.1.0) (2023-01-23)
 
-[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.0.0...1.0.1)
+[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.0.1...v1.1.0)
+
+**Implemented enhancements:**
+
+- Add support for sending events in bulk [\#44](https://github.com/riemann/riemann-ruby-client/pull/44) ([smortex](https://github.com/smortex))
+
+**Fixed bugs:**
+
+- Fix UDP fallback to TCP on large messages [\#46](https://github.com/riemann/riemann-ruby-client/pull/46) ([smortex](https://github.com/smortex))
+
+**Merged pull requests:**
+
+- Modernize unit tests [\#45](https://github.com/riemann/riemann-ruby-client/pull/45) ([smortex](https://github.com/smortex))
+- Switch from Bacon to RSpec [\#43](https://github.com/riemann/riemann-ruby-client/pull/43) ([smortex](https://github.com/smortex))
+- Create codeql-analysis.yml [\#40](https://github.com/riemann/riemann-ruby-client/pull/40) ([jamtur01](https://github.com/jamtur01))
+
+## [v1.0.1](https://github.com/riemann/riemann-ruby-client/tree/v1.0.1) (2022-06-25)
+
+[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.0.0...v1.0.1)
 
 **Merged pull requests:**
 
