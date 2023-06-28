@@ -11,6 +11,7 @@ module Riemann
         @host     = opts[:host] || HOST
         @port     = opts[:port] || PORT
         @max_size = opts[:max_size] || MAX_SIZE
+        @socket   = nil
       end
 
       def socket
