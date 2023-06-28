@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.2.0](https://github.com/riemann/riemann-ruby-client/tree/v1.2.0) (2023-06-28)
+
+[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.1.0...v1.2.0)
+
+**Implemented enhancements:**
+
+- Allow connection to Riemann using TLS 1.3 [\#49](https://github.com/riemann/riemann-ruby-client/pull/49) ([smortex](https://github.com/smortex))
+
 ## [v1.1.0](https://github.com/riemann/riemann-ruby-client/tree/v1.1.0) (2023-01-23)
 
 [Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.0.1...v1.1.0)
