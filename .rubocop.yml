@@ -1,4 +1,6 @@
 ---
+AllCops:
+  TargetRubyVersion: 2.6
 require:
 - rubocop-rspec
 Metrics/AbcSize:
@@ -13,8 +15,5 @@ Metrics/MethodLength:
   Enabled: false
 Metrics/PerceivedComplexity:
   Enabled: false
-Naming/VariableNumber:
-  AllowedIdentifiers:
-  - TLSv1_2
 Style/Documentation:
   Enabled: false

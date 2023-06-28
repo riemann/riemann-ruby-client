@@ -20,7 +20,7 @@ module Riemann
           ctx.key = OpenSSL::PKey::RSA.new(File.read(@key_file))
           ctx.cert = OpenSSL::X509::Certificate.new(File.read(@cert_file))
           ctx.ca_file = @ca_file if @ca_file
-          ctx.ssl_version = :TLSv1_2
+          ctx.min_version = OpenSSL::SSL::TLS1_2_VERSION
           ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER if @ssl_verify
         end
       end

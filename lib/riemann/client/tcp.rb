@@ -17,7 +17,7 @@ module Riemann
 
       # Public: Return a socket factory
       def self.socket_factory
-        @socket_factory || proc { |options|
+        @socket_factory ||= proc { |options|
           if options[:ssl]
             SSLSocket.connect(options)
           else
@@ -29,6 +29,8 @@ module Riemann
       def initialize(options = {}) # rubocop:disable Lint/MissingSuper
         @options = options
         @locket  = Monitor.new
+        @socket  = nil
+        @pid     = nil
       end
 
       def socket
