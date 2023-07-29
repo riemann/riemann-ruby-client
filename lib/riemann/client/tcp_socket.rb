@@ -311,7 +311,7 @@ module Riemann
       # Returns the bytes read
       def readpartial(maxlen, outbuf = nil)
         socket.read_nonblock(maxlen, outbuf)
-      rescue Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::ECONNRESET
+      rescue Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::ECONNRESET, IO::WaitReadable
         unless wait_readable(read_timeout)
           raise Timeout, "Could not read from #{host}:#{port} in #{read_timeout} seconds"
         end
@@ -332,8 +332,16 @@ module Riemann
           written = socket.write_nonblock(buf)
           buf = buf[written, buf.length]
         end
-      rescue Errno::EWOULDBLOCK, Errno::EINTR, Errno::EAGAIN, Errno::ECONNRESET
+      rescue Errno::EWOULDBLOCK, Errno::EINTR, Errno::EAGAIN, Errno::ECONNRESET, IO::WaitWritable
         unless wait_writable(write_timeout)
+          raise Timeout, "Could not write to #{host}:#{port} in #{write_timeout} seconds"
+        end
+
+        retry
+      rescue IO::WaitReadable
+        # Also rescued for SSL renegotiation in OpenSSL::SSL::SSLSocket according to
+        # https://ruby-doc.org/core-2.7.1/IO.html#method-c-select
+        unless wait_readable(read_timeout)
           raise Timeout, "Could not write to #{host}:#{port} in #{write_timeout} seconds"
         end
 
