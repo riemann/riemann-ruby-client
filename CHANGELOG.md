@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.2.1](https://github.com/riemann/riemann-ruby-client/tree/v1.2.1) (2023-07-30)
+
+[Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.2.0...v1.2.1)
+
+**Fixed bugs:**
+
+- Fix sending large batch of events over TLS [\#51](https://github.com/riemann/riemann-ruby-client/pull/51) ([smortex](https://github.com/smortex))
+
 ## [v1.2.0](https://github.com/riemann/riemann-ruby-client/tree/v1.2.0) (2023-06-28)
 
 [Full Changelog](https://github.com/riemann/riemann-ruby-client/compare/v1.1.0...v1.2.0)
