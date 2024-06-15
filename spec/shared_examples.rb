@@ -50,19 +50,6 @@ def wait_for(&block)
   raise 'wait_for condition never realized'
 end
 
-def roundtrip_metric(metric)
-  message_id = next_message_id
-
-  client_with_transport << {
-    service: 'metric-test',
-    metric: metric,
-    message_id: message_id
-  }
-
-  e = wait_for_message_with_id(message_id)
-  expect(e.metric).to eq(metric)
-end
-
 RSpec.shared_examples 'a riemann client' do
   it 'is not connected before sending' do
     expect(client).not_to be_connected
@@ -113,18 +100,34 @@ RSpec.shared_examples 'a riemann client' do
     end
   end
 
-  it 'send longs' do
-    roundtrip_metric(0)
-    roundtrip_metric(-3)
-    roundtrip_metric(5)
-    roundtrip_metric(-(2**63))
-    roundtrip_metric(2**63 - 1)
-  end
+  context 'when sending metrics' do
+    [
+      0,
+      -3,
+      5,
+      -(2**63),
+      2**63 - 1,
+      0.0,
+      12.0,
+      1.2300000190734863
+    ].each do |metric|
+      context "with metric=#{metric}" do
+        before do
+          client_with_transport << {
+            service: 'metric-test',
+            metric: metric,
+            message_id: message_id
+          }
+        end
 
-  it 'send doubles' do
-    roundtrip_metric 0.0
-    roundtrip_metric 12.0
-    roundtrip_metric 1.2300000190734863
+        let(:message_id) { next_message_id }
+
+        it 'return the exact value that was sent' do
+          e = wait_for_message_with_id(message_id)
+          expect(e.metric).to eq(metric)
+        end
+      end
+    end
   end
 
   context 'when sending custom attributes' do
@@ -485,7 +488,7 @@ RSpec.shared_examples 'a riemann client that does not acknowledge messages' do
       sleep INACTIVITY_TIME
 
       client_with_transport << message2
-      wait_for_message_with_id(message_id2)
+      expect { wait_for_message_with_id(message_id2) }.not_to raise_exception
     end
   end
 
@@ -517,7 +520,7 @@ RSpec.shared_examples 'a riemann client that does not acknowledge messages' do
       client.close
 
       client_with_transport << message2
-      wait_for_message_with_id(message_id2)
+      expect { wait_for_message_with_id(message_id2) }.not_to raise_exception
     end
   end
 

@@ -15,5 +15,7 @@ Metrics/MethodLength:
   Enabled: false
 Metrics/PerceivedComplexity:
   Enabled: false
+RSpec/IndexedLet:
+  Enabled: false
 Style/Documentation:
   Enabled: false
