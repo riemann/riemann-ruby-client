@@ -72,4 +72,4 @@ AutoState automatically send the new state to the client.
 
 The MIT License
 
-Copyright (c) 2011-2022 Kyle Kingsbury
+Copyright (c) 2011-2024 Kyle Kingsbury
