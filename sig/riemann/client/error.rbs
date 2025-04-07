@@ -1,0 +1,6 @@
+module Riemann
+  class Client
+    class Error < RuntimeError
+    end
+  end
+end

@@ -1,0 +1,6 @@
+module Riemann
+  class Client
+    class InvalidResponse < Error
+    end
+  end
+end

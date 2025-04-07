@@ -13,9 +13,9 @@ module Riemann
     require 'socket'
     require 'time'
 
-    HOST = '127.0.0.1'
-    PORT = 5555
-    TIMEOUT = 5
+    DEFAULT_HOST = '127.0.0.1'
+    DEFAULT_PORT = 5555
+    DEFAULT_TIMEOUT = 5
 
     require 'riemann/client/tcp'
     require 'riemann/client/udp'
@@ -24,9 +24,9 @@ module Riemann
 
     def initialize(opts = {})
       @options = opts.dup
-      @options[:host] ||= HOST
-      @options[:port] ||= PORT
-      @options[:timeout] ||= TIMEOUT
+      @options[:host] ||= DEFAULT_HOST
+      @options[:port] ||= DEFAULT_PORT
+      @options[:timeout] ||= DEFAULT_TIMEOUT
 
       @udp = UDP.new(@options)
       @tcp = TCP.new(@options)

@@ -1,0 +1,6 @@
+module Riemann
+  class Client
+    class ServerError < Error
+    end
+  end
+end

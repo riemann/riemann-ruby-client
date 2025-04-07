@@ -3,14 +3,14 @@
 module Riemann
   class Client
     class UDP < Client
-      MAX_SIZE = 16_384
+      DEFAULT_MAX_SIZE = 16_384
 
       attr_accessor :host, :port, :max_size
 
       def initialize(opts = {}) # rubocop:disable Lint/MissingSuper
-        @host     = opts[:host] || HOST
-        @port     = opts[:port] || PORT
-        @max_size = opts[:max_size] || MAX_SIZE
+        @host     = opts[:host] || DEFAULT_HOST
+        @port     = opts[:port] || DEFAULT_PORT
+        @max_size = opts[:max_size] || DEFAULT_MAX_SIZE
         @socket   = nil
       end
 

@@ -1,0 +1,6 @@
+module Riemann
+  class Client
+    class Unsupported < Error
+    end
+  end
+end

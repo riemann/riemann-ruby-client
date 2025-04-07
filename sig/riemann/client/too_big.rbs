@@ -1,0 +1,6 @@
+module Riemann
+  class Client
+    class TooBig < Error
+    end
+  end
+end

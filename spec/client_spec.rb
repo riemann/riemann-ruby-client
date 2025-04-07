@@ -44,7 +44,7 @@ RSpec.describe 'Riemann::Client' do
     context 'when sending a message too large for UDP transport' do
       let(:large_message) do
         {
-          data: 'X' * (Riemann::Client::UDP::MAX_SIZE + 10)
+          data: 'X' * (Riemann::Client::UDP::DEFAULT_MAX_SIZE + 10)
         }
       end
 

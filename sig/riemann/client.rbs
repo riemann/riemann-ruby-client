@@ -1,0 +1,26 @@
+module Riemann
+  class Client
+    DEFAULT_HOST: String
+    DEFAULT_PORT: Integer
+    DEFAULT_TIMEOUT: Integer
+
+    @options: Hash[Symbol, untyped]
+
+    attr_reader tcp: TCP
+    attr_reader udp: UDP
+
+    def close: -> void
+
+    def connect: -> void
+
+    def connected?: -> bool
+
+    def host: -> String
+
+    def port: -> Integer
+
+    def query: (String) -> bool
+
+    def timeout: -> Integer
+  end
+end

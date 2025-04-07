@@ -1,0 +1,7 @@
+module Riemann
+  class Client
+    class UDP
+      def socket: -> Socket
+    end
+  end
+end

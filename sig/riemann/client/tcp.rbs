@@ -1,0 +1,7 @@
+module Riemann
+  class Client
+    class TCP < Client
+      def connected?: -> bool
+    end
+  end
+end
