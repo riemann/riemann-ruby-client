@@ -285,7 +285,7 @@ RSpec.shared_examples 'a riemann client' do
     end
 
     it 'query quickly' do
-      puts "\n     #{format('%.2f', rate)} queries/sec (#{format('%.2f', (1000 / rate))}ms per query)"
+      puts "\n     #{format('%.2f', rate)} queries/sec (#{format('%.2f', 1000 / rate)}ms per query)"
       expect(rate).to be > 100
     end
   end
@@ -357,7 +357,7 @@ RSpec.shared_examples 'a riemann client' do
     end
 
     it 'is threadsafe' do
-      puts "\n     #{format('%.2f', rate)} inserts/sec (#{format('%.2f', (1000 / rate))}ms per insert)"
+      puts "\n     #{format('%.2f', rate)} inserts/sec (#{format('%.2f', 1000 / rate)}ms per insert)"
       expect(rate).to be > expected_rate
     end
   end
